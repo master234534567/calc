@@ -176,23 +176,36 @@
 
         const gameDocument = gameTab.document;
         gameDocument.open();
-        gameDocument.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Calculator</title></head><body></body></html>');
+        gameDocument.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Loading...</title></head><body>Loading...</body></html>');
         gameDocument.close();
 
-        const base = gameDocument.createElement('base');
-        base.href = new URL('.', window.location.href).href;
-        gameDocument.head.appendChild(base);
+        const gameUrl = new URL('game.html', window.location.href);
+        fetch(gameUrl)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Could not load the site (${response.status})`);
+            }
+            return response.text();
+          })
+          .then((html) => {
+            if (gameTab.closed) {
+              return;
+            }
 
-        const style = gameDocument.createElement('style');
-        style.textContent = 'html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#000}';
-        gameDocument.head.appendChild(style);
+            const siteDocument = new DOMParser().parseFromString(html, 'text/html');
+            const base = siteDocument.createElement('base');
+            base.href = new URL('.', gameUrl).href;
+            siteDocument.head.prepend(base);
 
-        const gameFrame = gameDocument.createElement('iframe');
-        gameFrame.title = 'Calculator';
-        gameFrame.allow = 'fullscreen; autoplay; gamepad';
-        gameFrame.allowFullscreen = true;
-        gameFrame.src = new URL('game.html', window.location.href).href;
-        gameDocument.body.appendChild(gameFrame);
+            gameDocument.open();
+            gameDocument.write(`<!DOCTYPE html>${siteDocument.documentElement.outerHTML}`);
+            gameDocument.close();
+          })
+          .catch((error) => {
+            if (!gameTab.closed) {
+              gameDocument.body.textContent = `Could not load the site: ${error.message}`;
+            }
+          });
       }
     </script>
   </body>
