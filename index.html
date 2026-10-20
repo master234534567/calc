@@ -97,17 +97,6 @@
         color: #fecaca;
       }
 
-      #game-frame {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        border: 0;
-        display: none;
-        background: #000;
-        z-index: 50;
-      }
-
       @media (max-width: 420px) {
         #calculator {
           padding: 18px;
@@ -141,12 +130,8 @@
       </div>
     </div>
 
-    <iframe id="game-frame" title="Game launcher" src="about:blank"></iframe>
-
     <script>
       const display = document.getElementById('display');
-      const calculator = document.getElementById('calculator');
-      const gameFrame = document.getElementById('game-frame');
       let input = '';
 
       const renderDisplay = () => {
@@ -182,42 +167,32 @@
       });
 
       function launchGame() {
-        calculator.style.display = 'none';
-        gameFrame.style.display = 'block';
+        const gameTab = window.open('about:blank', '_blank');
+        if (!gameTab) {
+          display.textContent = 'Allow pop-ups';
+          input = '';
+          return;
+        }
 
-        const doc = gameFrame.contentWindow.document;
-        const html = `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      html, body {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #000;
-      }
+        const gameDocument = gameTab.document;
+        gameDocument.open();
+        gameDocument.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Calculator</title></head><body></body></html>');
+        gameDocument.close();
 
-      iframe {
-        position: fixed;
-        border: 0;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        background: #000;
-      }
-    </style>
-  </head>
-  <body>
-    <iframe id="cloverFrame" src="https://cdn.jsdelivr.net/gh/web-ports/clover-pit@main/" allow="fullscreen; autoplay; gamepad"></iframe>
-  </body>
-</html>`;
+        const base = gameDocument.createElement('base');
+        base.href = new URL('.', window.location.href).href;
+        gameDocument.head.appendChild(base);
 
-        doc.open();
-        doc.write(html);
-        doc.close();
+        const style = gameDocument.createElement('style');
+        style.textContent = 'html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#000}';
+        gameDocument.head.appendChild(style);
+
+        const gameFrame = gameDocument.createElement('iframe');
+        gameFrame.title = 'Calculator';
+        gameFrame.allow = 'fullscreen; autoplay; gamepad';
+        gameFrame.allowFullscreen = true;
+        gameFrame.src = new URL('game.html', window.location.href).href;
+        gameDocument.body.appendChild(gameFrame);
       }
     </script>
   </body>
