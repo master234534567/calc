@@ -1,139 +1,234 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="en">
   <head>
-    <base href="https://cdn.jsdelivr.net/gh/web-ports/clover-pit@main/">
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | CloverPit</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator Launcher</title>
+    <style>
+      :root {
+        --bg-1: #09111f;
+        --bg-2: #121b2a;
+        --panel: rgba(17, 26, 38, 0.9);
+        --primary: #7dd3fc;
+        --accent: #34d399;
+        --text: #e7f3ff;
+        --muted: #90a4c0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      #calculator {
+        width: min(90vw, 380px);
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 22px;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+        padding: 22px;
+      }
+
+      .display {
+        width: 100%;
+        height: 110px;
+        border-radius: 16px;
+        background: rgba(10, 15, 24, 0.9);
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0 18px;
+        font-size: clamp(2.2rem, 6vw, 3.5rem);
+        letter-spacing: 0.08em;
+        font-weight: 700;
+        color: var(--primary);
+        overflow: hidden;
+      }
+
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      button {
+        border: none;
+        border-radius: 14px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        height: 64px;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(148, 163, 184, 0.14);
+        transition: transform 0.12s ease, background 0.12s ease;
+      }
+
+      button:hover {
+        background: rgba(125, 211, 252, 0.18);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .action {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--accent);
+      }
+
+      .danger {
+        background: rgba(248, 113, 113, 0.14);
+        color: #fecaca;
+      }
+
+      #game-frame {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        border: 0;
+        display: none;
+        background: #000;
+        z-index: 50;
+      }
+
+      @media (max-width: 420px) {
+        #calculator {
+          padding: 18px;
+        }
+
+        button {
+          height: 58px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="loading-text"
-    style="color: white; font-size: 48px; font-family: cursive; text-align: center; margin-top: 20px;"> LOADING...
-  </div>
-    <div id="unity-container">
-      <canvas id="unity-canvas" width=960 height=540 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
+    <div id="calculator" aria-live="polite">
+      <div id="display" class="display">0</div>
+      <div class="keypad">
+        <button type="button" data-digit="7">7</button>
+        <button type="button" data-digit="8">8</button>
+        <button type="button" data-digit="9">9</button>
+
+        <button type="button" data-digit="4">4</button>
+        <button type="button" data-digit="5">5</button>
+        <button type="button" data-digit="6">6</button>
+
+        <button type="button" data-digit="1">1</button>
+        <button type="button" data-digit="2">2</button>
+        <button type="button" data-digit="3">3</button>
+
+        <button type="button" class="danger" data-action="clear">C</button>
+        <button type="button" data-digit="0">0</button>
+        <button type="button" class="action" data-action="enter">OK</button>
       </div>
-      <div id="unity-warning"> </div>
     </div>
+
+    <iframe id="game-frame" title="Game launcher" src="about:blank"></iframe>
+
     <script>
-      var loadingText = document.querySelector("#loading-text");
-    let totalBytes = 0;
-    let loadedBytes = 0;
+      const display = document.getElementById('display');
+      const calculator = document.getElementById('calculator');
+      const gameFrame = document.getElementById('game-frame');
+      let input = '';
 
-    async function fetchWithProgress(url) {
-      const response = await fetch(url);
-      const reader = response.body.getReader();
-      let chunks = [];
-      let received = 0;
-      while (true) {
-        const {
-          done,
-          value
-        } = await reader.read();
-        if (done) break;
-        received += value.length;
-        loadedBytes += value.length;
-        chunks.push(value);
-        let mbDone = (loadedBytes / (1024 * 1024)).toFixed(2);
-        let mbTotal = '86.96';
-        loadingText.textContent = `LOADING... ${mbDone} MB / ${mbTotal} MB`;
-      }
-      let fullBuffer = new Uint8Array(received);
-      let offset = 0;
-      for (let chunk of chunks) {
-        fullBuffer.set(chunk, offset);
-        offset += chunk.length;
-      }
-      return fullBuffer.buffer;
-    }
-
-    async function mergeFiles(fileParts, cacheKey) {
-      const buffers = await Promise.all(
-        fileParts.map(part => fetchWithProgress(part))
-      );
-      const mergedBlob = new Blob(buffers);
-      return URL.createObjectURL(mergedBlob);
-    }
-
-    function getParts(file, start, end) {
-      let parts = [];
-      for (let i = start; i <= end; i++) {
-        parts.push(file + ".part" + i);
-      }
-      return parts;
-    }
-    (async () => {
-      const [dataUrl, wasmUrl] = await Promise.all([
-        mergeFiles(getParts("Build/CloverPit.data", 1, 3), "CloverPit.data"),
-        mergeFiles(getParts("Build/CloverPit.wasm", 1, 3), "CloverPit.wasm"),
-      ]);
-
-      var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var warningBanner = document.querySelector("#unity-warning");
-
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-      }
-
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/CloverPit.loader.js";
-      var config = {
-        arguments: [],
-        dataUrl: dataUrl,
-        frameworkUrl: buildUrl + "/CloverPit.framework.js",
-        codeUrl: wasmUrl,
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Panik Arcade",
-        productName: "CloverPit",
-        productVersion: "1.3",
-        showBanner: unityShowBanner,
+      const renderDisplay = () => {
+        display.textContent = input || '0';
       };
 
-      // By default Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
+      document.querySelectorAll('[data-digit]').forEach((button) => {
+        button.addEventListener('click', () => {
+          input += button.dataset.digit;
+          if (input.length > 4) {
+            input = input.slice(-4);
+          }
+          renderDisplay();
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-      }
-
-
-      loadingBar.style.display = "block";
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-        }).then((unityInstance) => {
-          loadingBar.style.display = "none";
-        }).catch((message) => {
+          if (input === '0000') {
+            launchGame();
+          }
         });
-      };
-    });
-      document.body.appendChild(script);
+      });
+
+      document.querySelector('[data-action="clear"]').addEventListener('click', () => {
+        input = '';
+        renderDisplay();
+      });
+
+      document.querySelector('[data-action="enter"]').addEventListener('click', () => {
+        if (input === '0000') {
+          launchGame();
+        } else {
+          input = '';
+          renderDisplay();
+        }
+      });
+
+      function launchGame() {
+        calculator.style.display = 'none';
+        gameFrame.style.display = 'block';
+
+        const doc = gameFrame.contentWindow.document;
+        const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+
+      iframe {
+        position: fixed;
+        border: 0;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+      }
+
+      #vengeFrame {
+        z-index: 2;
+      }
+
+      #cloverFrame {
+        z-index: 1;
+        opacity: 0.98;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="cloverFrame" src="https://cdn.jsdelivr.net/gh/web-ports/clover-pit@main/" allow="fullscreen; autoplay; gamepad"></iframe>
+    <iframe id="vengeFrame" src="https://venge.io/" allow="fullscreen; autoplay; gamepad; microphone; camera"></iframe>
+  </body>
+</html>`;
+
+        doc.open();
+        doc.write(html);
+        doc.close();
+      }
     </script>
   </body>
 </html>
