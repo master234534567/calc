@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111714" />
+    <title>3DS Emulator | Local Play</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="masthead">
+        <a class="back-link" href="../library.html" aria-label="Back to library">Library</a>
+        <p class="eyebrow">LOCAL WASM PLAYER</p>
+        <h1>3DS <span>Emulator</span></h1>
+        <p class="intro">A dual-screen browser frontend for your own decrypted game dump.</p>
+      </header>
+
+      <div class="workspace">
+        <section class="console" aria-label="Nintendo 3DS game display">
+          <div class="screen-stack">
+            <section class="screen-frame top-frame" aria-label="Top screen">
+              <div class="screen-label"><span>TOP SCREEN</span><span>4:3</span></div>
+              <canvas id="top-screen" width="800" height="600" tabindex="0" aria-label="Emulator top screen"></canvas>
+              <p class="screen-placeholder" id="top-placeholder">Select a game file to begin</p>
+            </section>
+          </div>
+          <div class="console-foot">
+            <span class="status-dot" id="status-dot"></span>
+            <p id="status" role="status" aria-live="polite">Emulator core not installed</p>
+            <button id="fullscreen" class="icon-button" type="button" title="Enter fullscreen" aria-label="Enter fullscreen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3" /></svg>
+            </button>
+          </div>
+        </section>
+
+        <aside class="controls-panel" aria-label="Game controls and ROM upload">
+          <div class="panel-heading">
+            <p class="eyebrow">YOUR SESSION</p>
+            <h2>Load a game</h2>
+          </div>
+          <label class="upload-button" for="rom-file">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+            <span>Upload Decrypted Pokémon X/Y ROM (.3ds/.cci)</span>
+          </label>
+          <input id="rom-file" type="file" accept=".3ds,.cci,application/octet-stream" />
+          <p class="local-note">The selected file is read locally in this tab. No ROM is uploaded to a server.</p>
+          <label class="save-button" for="save-file">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm3 0v6h8V4m-8 16v-6h8v6" /></svg>
+            <span>Import save file (.srm)</span>
+          </label>
+          <input id="save-file" type="file" accept=".srm,application/octet-stream" />
+          <p class="save-note">Load a game before importing its save. Save compatibility depends on the emulator core.</p>
+
+          <div class="load-progress" id="load-progress" hidden>
+            <div class="progress-copy"><span id="progress-label">Reading file</span><span id="progress-value">0%</span></div>
+            <progress id="progress-bar" max="100" value="0"></progress>
+          </div>
+
+          <div class="divider"></div>
+          <div class="panel-heading mapping-heading">
+            <p class="eyebrow">KEYBOARD</p>
+            <h2>Control map</h2>
+          </div>
+          <dl class="mapping-list">
+            <div><dt>Circle Pad</dt><dd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dd></div>
+            <div><dt>D-pad</dt><dd><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></dd></div>
+            <div><dt>A / B / X / Y</dt><dd><kbd>J</kbd><kbd>K</kbd><kbd>I</kbd><kbd>U</kbd></dd></div>
+            <div><dt>L / R</dt><dd><kbd>Q</kbd><kbd>E</kbd></dd></div>
+            <div><dt>Start / Select</dt><dd><kbd>Enter</kbd><kbd>⌫</kbd></dd></div>
+            <div><dt>Touch</dt><dd>Pointer on lower screen</dd></div>
+          </dl>
+          <p class="mobile-note">On touch devices, tap the lower screen. A physical keyboard or connected keyboard is needed for buttons.</p>
+        </aside>
+      </div>
+
+      <footer class="page-footer">
+        <span>Bring your own legally obtained, decrypted game dump.</span>
+        <span>Emulator core is a separate installation.</span>
+      </footer>
+    </main>
+    <script src="script.js" defer></script>
+  </body>
+</html>
