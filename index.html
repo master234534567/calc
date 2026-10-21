@@ -63,7 +63,7 @@
 
       .keypad {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 12px;
       }
 
@@ -72,7 +72,7 @@
         border-radius: 14px;
         font-size: 1.2rem;
         font-weight: 700;
-        height: 64px;
+        height: 60px;
         cursor: pointer;
         color: var(--text);
         background: rgba(148, 163, 184, 0.14);
@@ -90,6 +90,15 @@
       .action {
         background: rgba(52, 211, 153, 0.15);
         color: var(--accent);
+      }
+
+      .operator {
+        background: rgba(125, 211, 252, 0.14);
+        color: var(--primary);
+      }
+
+      .equals {
+        grid-column: span 3;
       }
 
       .danger {
@@ -115,54 +124,195 @@
         <button type="button" data-digit="7">7</button>
         <button type="button" data-digit="8">8</button>
         <button type="button" data-digit="9">9</button>
+        <button type="button" class="operator" data-operator="/">÷</button>
 
         <button type="button" data-digit="4">4</button>
         <button type="button" data-digit="5">5</button>
         <button type="button" data-digit="6">6</button>
+        <button type="button" class="operator" data-operator="*">×</button>
 
         <button type="button" data-digit="1">1</button>
         <button type="button" data-digit="2">2</button>
         <button type="button" data-digit="3">3</button>
+        <button type="button" class="operator" data-operator="-">−</button>
 
         <button type="button" class="danger" data-action="clear">C</button>
         <button type="button" data-digit="0">0</button>
-        <button type="button" class="action" data-action="enter">OK</button>
+        <button type="button" data-action="decimal">.</button>
+        <button type="button" class="operator" data-operator="+">+</button>
+
+        <button type="button" class="action" data-action="backspace" aria-label="Backspace">⌫</button>
+        <button type="button" class="action equals" data-action="enter">=</button>
       </div>
     </div>
 
     <script>
       const display = document.getElementById('display');
       let input = '';
+      let accumulator = null;
+      let pendingOperator = null;
+      let replaceInput = false;
+
+      const operatorSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+      function formatNumber(value) {
+        if (!Number.isFinite(value)) {
+          return 'Error';
+        }
+        return String(Number(value.toPrecision(10)));
+      }
 
       const renderDisplay = () => {
-        display.textContent = input || '0';
+        if (pendingOperator) {
+          display.textContent = `${formatNumber(accumulator)} ${operatorSymbols[pendingOperator]} ${input || '0'}`;
+          return;
+        }
+        display.textContent = input || (accumulator === null ? '0' : formatNumber(accumulator));
       };
 
-      document.querySelectorAll('[data-digit]').forEach((button) => {
-        button.addEventListener('click', () => {
-          input += button.dataset.digit;
-          if (input.length > 4) {
-            input = input.slice(-4);
-          }
-          renderDisplay();
+      function addDigit(digit) {
+        if (replaceInput) {
+          input = '';
+          replaceInput = false;
+        }
+        if (input.length >= 14) {
+          return;
+        }
+        input += digit;
+        renderDisplay();
 
-          if (input === '0000') {
-            launchGame();
+        if (accumulator === null && pendingOperator === null && input === '0000') {
+          launchGame();
+        }
+      }
+
+      function applyOperator(first, second, operator) {
+        if (operator === '+') return first + second;
+        if (operator === '-') return first - second;
+        if (operator === '*') return first * second;
+        if (operator === '/') return second === 0 ? NaN : first / second;
+        return second;
+      }
+
+      function chooseOperator(operator) {
+        if (input === '' && accumulator === null) {
+          return;
+        }
+        if (pendingOperator && input !== '') {
+          accumulator = applyOperator(accumulator, Number(input), pendingOperator);
+          if (!Number.isFinite(accumulator)) {
+            showCalculationError();
+            return;
           }
-        });
+        } else if (accumulator === null) {
+          accumulator = Number(input || 0);
+        }
+        input = '';
+        pendingOperator = operator;
+        replaceInput = false;
+        renderDisplay();
+      }
+
+      function calculate() {
+        if (pendingOperator === null || input === '') {
+          return;
+        }
+        const result = applyOperator(accumulator, Number(input), pendingOperator);
+        if (!Number.isFinite(result)) {
+          showCalculationError();
+          return;
+        }
+        input = formatNumber(result);
+        accumulator = null;
+        pendingOperator = null;
+        replaceInput = true;
+        renderDisplay();
+      }
+
+      function showCalculationError() {
+        input = '';
+        accumulator = null;
+        pendingOperator = null;
+        replaceInput = true;
+        display.textContent = 'Error';
+      }
+
+      function clearCalculator() {
+        input = '';
+        accumulator = null;
+        pendingOperator = null;
+        replaceInput = false;
+        renderDisplay();
+      }
+
+      function addDecimal() {
+        if (replaceInput) {
+          input = '';
+          replaceInput = false;
+        }
+        if (input === '') {
+          input = '0';
+        }
+        if (!input.includes('.')) {
+          input += '.';
+        }
+        renderDisplay();
+      }
+
+      function backspace() {
+        if (replaceInput) {
+          return;
+        }
+        input = input.slice(0, -1);
+        renderDisplay();
+      }
+
+      document.querySelectorAll('[data-digit]').forEach((button) => {
+        button.addEventListener('click', () => addDigit(button.dataset.digit));
+      });
+
+      document.querySelectorAll('[data-operator]').forEach((button) => {
+        button.addEventListener('click', () => chooseOperator(button.dataset.operator));
       });
 
       document.querySelector('[data-action="clear"]').addEventListener('click', () => {
-        input = '';
-        renderDisplay();
+        clearCalculator();
       });
 
       document.querySelector('[data-action="enter"]').addEventListener('click', () => {
         if (input === '0000') {
           launchGame();
         } else {
-          input = '';
-          renderDisplay();
+          calculate();
+        }
+      });
+
+      document.querySelector('[data-action="decimal"]').addEventListener('click', addDecimal);
+      document.querySelector('[data-action="backspace"]').addEventListener('click', backspace);
+
+      document.addEventListener('keydown', (event) => {
+        if (/^[0-9]$/.test(event.key)) {
+          event.preventDefault();
+          addDigit(event.key);
+        } else if (['+', '-', '*', '/'].includes(event.key)) {
+          event.preventDefault();
+          chooseOperator(event.key);
+        } else if (event.key === 'Enter' || event.key === '=') {
+          event.preventDefault();
+          if (input === '0000') {
+            launchGame();
+          } else {
+            calculate();
+          }
+        } else if (event.key === '.') {
+          event.preventDefault();
+          addDecimal();
+        } else if (event.key === 'Backspace') {
+          event.preventDefault();
+          backspace();
+        } else if (event.key === 'Escape' || event.key === 'Delete') {
+          event.preventDefault();
+          clearCalculator();
         }
       });
 
@@ -179,7 +329,13 @@
         gameDocument.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Loading...</title></head><body>Loading...</body></html>');
         gameDocument.close();
 
-        const gameUrl = new URL('library.html', window.location.href);
+        const currentUrl = new URL(window.location.href);
+        const appBase = currentUrl.pathname.endsWith('/')
+          ? currentUrl
+          : /\.html?$/i.test(currentUrl.pathname)
+            ? new URL('.', currentUrl)
+            : new URL(`${currentUrl.pathname}/`, currentUrl.origin);
+        const gameUrl = new URL('library.html', appBase);
         fetch(gameUrl)
           .then((response) => {
             if (!response.ok) {
