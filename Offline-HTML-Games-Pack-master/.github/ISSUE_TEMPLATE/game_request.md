@@ -1,0 +1,20 @@
+---
+name: Game Request
+about: Suggest games to add
+title: "Game Request"
+labels: game-request
+---
+## Rules
+1. No paid indie games
+2. No online multiplayer games
+3. Must be somewhat popular
+4. No fnf mods
+
+
+
+Game name(s):
+
+
+Game link(s) (optional):
+
+

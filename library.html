@@ -79,6 +79,29 @@
         font: inherit;
       }
 
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .tab {
+        min-width: 0;
+        height: 40px;
+        border: 1px solid #cbd5ce;
+        background: #fff;
+        color: #405148;
+      }
+
+      .tab:hover { background: #edf3ef; }
+
+      .tab[aria-selected="true"] {
+        border-color: #176b52;
+        background: #176b52;
+        color: #fff;
+      }
+
       .list {
         margin: 0;
         padding: 0;
@@ -94,6 +117,10 @@
         min-height: 82px;
         padding: 16px 4px;
         border-bottom: 1px solid #dce2de;
+      }
+
+      .item[hidden] {
+        display: none;
       }
 
       .item-title {
@@ -125,7 +152,8 @@
       }
 
       button:focus-visible,
-      .search:focus-visible {
+      .search:focus-visible,
+      .tab:focus-visible {
         outline: 3px solid #9bc8b5;
         outline-offset: 2px;
       }
@@ -169,20 +197,26 @@
         </div>
         <input class="search" id="search" type="search" placeholder="Filter items" aria-label="Filter items" />
       </div>
-      <ul class="list" id="items">
-        <li class="item" data-name="cloverpit">
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Library sections">
+        <button class="tab" id="tab-other" type="button" role="tab" aria-selected="true" aria-controls="items" data-category="other">Other Games</button>
+        <button class="tab" id="tab-mine" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="mine" tabindex="-1">Mine Calc</button>
+        <button class="tab" id="tab-ice-cream" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="bad-ice-cream" tabindex="-1">Bad Ice Cream Guy Calc</button>
+        <button class="tab" id="tab-roms" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="roms" tabindex="-1">ROM Files</button>
+      </nav>
+      <ul class="list" id="items" role="tabpanel" aria-labelledby="tab-other">
+        <li class="item" data-category="other" data-name="cloverpit">
           <div>
             <span class="item-title">CloverPit</span>
             <span class="item-kind">Local build</span>
           </div>
           <button type="button" data-page="game.html">Open</button>
         </li>
-        <li class="item" data-name="pokemon x y 3ds emulator wasm">
+        <li class="item" data-category="roms" data-name="3ds rom emulator">
           <div>
-            <span class="item-title">Pokémon X/Y 3DS Emulator</span>
-            <span class="item-kind">Local WASM frontend</span>
+            <span class="item-title">WebRetro</span>
+            <span class="item-kind">External emulator</span>
           </div>
-          <button type="button" data-page="emulator/index.html">Open</button>
+          <button type="button" data-page="https://only-game.github.io/emulation/webretro/index.html" data-external="true">Open</button>
         </li>
       </ul>
       <p id="status" role="status" aria-live="polite">Loading games...</p>
@@ -192,12 +226,51 @@
       const search = document.getElementById('search');
       const count = document.getElementById('count');
       const status = document.getElementById('status');
+      const tabs = document.getElementById('tabs');
+      const itemsPanel = document.getElementById('items');
+      let activeCategory = 'other';
+
+      const mineCalcFiles = new Set([
+        '1.12_wasm.html', '1.12.html', '1.5.html', '1.8_wasm.html', '1.8.html',
+        'alpha_1.2.6.html', 'beta_1.3.html', 'indev.html',
+      ]);
+      const badIceCreamFiles = new Set([
+        'bad-ice-cream.html', 'bad-ice-cream-2.html', 'bad-ice-cream-3.html',
+      ]);
+
+      function getCategory(filename) {
+        const normalizedName = filename.toLowerCase();
+        if (mineCalcFiles.has(normalizedName)) return 'mine';
+        if (badIceCreamFiles.has(normalizedName)) return 'bad-ice-cream';
+        return 'other';
+      }
+
+      function getTitle(filename) {
+        const normalizedName = filename.toLowerCase();
+        const specialTitles = {
+          '1.12_wasm.html': 'Minecraft 1.12 WASM',
+          '1.12.html': 'Minecraft 1.12',
+          '1.5.html': 'Minecraft 1.5',
+          '1.8_wasm.html': 'Minecraft 1.8 WASM',
+          '1.8.html': 'Minecraft 1.8',
+          'alpha_1.2.6.html': 'Minecraft Alpha 1.2.6',
+          'beta_1.3.html': 'Minecraft Beta 1.3',
+          'indev.html': 'Minecraft Indev',
+          'bad-ice-cream.html': 'Bad Ice Cream',
+          'bad-ice-cream-2.html': 'Bad Ice Cream 2',
+          'bad-ice-cream-3.html': 'Bad Ice Cream 3',
+        };
+        return specialTitles[normalizedName] || filename
+          .replace(/\.html?$/i, '')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+      }
 
       function filterItems() {
         const query = search.value.trim().toLowerCase();
         let visibleCount = 0;
         list.querySelectorAll('.item').forEach((item) => {
-          const visible = item.dataset.name.includes(query);
+          const visible = item.dataset.category === activeCategory && item.dataset.name.includes(query);
           item.hidden = !visible;
           visibleCount += Number(visible);
         });
@@ -205,6 +278,31 @@
       }
 
       search.addEventListener('input', filterItems);
+
+      tabs.addEventListener('click', (event) => {
+        const selectedTab = event.target.closest('[role="tab"]');
+        if (!selectedTab) return;
+        activeCategory = selectedTab.dataset.category;
+        tabs.querySelectorAll('[role="tab"]').forEach((tab) => {
+          const selected = tab === selectedTab;
+          tab.setAttribute('aria-selected', String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+        });
+        itemsPanel.setAttribute('aria-labelledby', selectedTab.id);
+        filterItems();
+      });
+
+      tabs.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        const tabButtons = [...tabs.querySelectorAll('[role="tab"]')];
+        const currentIndex = tabButtons.indexOf(document.activeElement);
+        if (currentIndex < 0) return;
+        event.preventDefault();
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const nextTab = tabButtons[(currentIndex + direction + tabButtons.length) % tabButtons.length];
+        nextTab.focus();
+        nextTab.click();
+      });
 
       list.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-page]');
@@ -215,7 +313,7 @@
         status.textContent = 'Opening...';
         try {
           const targetUrl = new URL(button.dataset.page, document.baseURI);
-          if (button.dataset.page === 'emulator/index.html') {
+          if (button.dataset.external === 'true') {
             window.location.assign(targetUrl.href);
             return;
           }
@@ -248,12 +346,10 @@
           const filenames = await response.json();
           const fragment = document.createDocumentFragment();
           filenames.forEach((filename) => {
-            const title = filename
-              .replace(/\.html?$/i, '')
-              .replace(/[-_]+/g, ' ')
-              .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+            const title = getTitle(filename);
             const item = document.createElement('li');
             item.className = 'item';
+            item.dataset.category = getCategory(filename);
             item.dataset.name = `${title} ${filename}`.toLowerCase();
 
             const details = document.createElement('div');

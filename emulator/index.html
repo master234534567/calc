@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111714" />
-    <title>3DS Emulator | Local Play</title>
+    <title>3DS ROM Emulator | Local Play</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -12,8 +12,8 @@
       <header class="masthead">
         <a class="back-link" href="../library.html" aria-label="Back to library">Library</a>
         <p class="eyebrow">LOCAL WASM PLAYER</p>
-        <h1>3DS <span>Emulator</span></h1>
-        <p class="intro">A dual-screen browser frontend for your own decrypted game dump.</p>
+        <h1>3DS <span>ROM Player</span></h1>
+        <p class="intro">A dual-screen browser frontend for compatible 3DS ROM files.</p>
       </header>
 
       <div class="workspace">
@@ -41,10 +41,10 @@
           </div>
           <label class="upload-button" for="rom-file">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
-            <span>Upload Decrypted Pokémon X/Y ROM (.3ds/.cci)</span>
+            <span>Upload ROM File (.3ds/.cci)</span>
           </label>
           <input id="rom-file" type="file" accept=".3ds,.cci,application/octet-stream" />
-          <p class="local-note">The selected file is read locally in this tab. No ROM is uploaded to a server.</p>
+          <p class="local-note">Files are read locally. This 3DS core supports compatible .3ds/.cci files; other console formats need a different emulator core.</p>
           <label class="save-button" for="save-file">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm3 0v6h8V4m-8 16v-6h8v6" /></svg>
             <span>Import save file (.srm)</span>
