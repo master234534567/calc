@@ -179,7 +179,7 @@
         gameDocument.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Loading...</title></head><body>Loading...</body></html>');
         gameDocument.close();
 
-        const gameUrl = new URL('game.html', window.location.href);
+        const gameUrl = new URL('library.html', window.location.href);
         fetch(gameUrl)
           .then((response) => {
             if (!response.ok) {
