@@ -573,8 +573,8 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.dataset.page = new URL(
-              `offline/${encodeURIComponent(filename)}`,
-              'https://raw.githack.com/CoolDude2349/Offline-HTML-Games-Pack/master/'
+              `Offline-HTML-Games-Pack-master/offline/${encodeURIComponent(filename)}`,
+              document.baseURI
             ).href;
             button.textContent = 'Open';
             item.append(details, button);
