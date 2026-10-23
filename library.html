@@ -545,51 +545,6 @@
         search.focus();
       });
 
-      async function loadGames() {
-        try {
-          const response = await fetch('offline-games.json');
-          if (!response.ok) {
-            throw new Error(`Unable to load game list (${response.status})`);
-          }
-
-          const filenames = await response.json();
-          const fragment = document.createDocumentFragment();
-          filenames.forEach((filename) => {
-            const title = getTitle(filename);
-            const item = document.createElement('li');
-            item.className = 'item';
-            item.dataset.category = getCategory(filename);
-            item.dataset.name = `${title} ${filename}`.toLowerCase();
-
-            const details = document.createElement('div');
-            const titleElement = document.createElement('span');
-            titleElement.className = 'item-title';
-            titleElement.textContent = title;
-            const kind = document.createElement('span');
-            kind.className = 'item-kind';
-            kind.textContent = 'Offline HTML';
-            details.append(titleElement, kind);
-
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.dataset.page = new URL(
-              `Offline-HTML-Games-Pack-master/offline/${encodeURIComponent(filename)}`,
-              document.baseURI
-            ).href;
-            button.textContent = 'Open';
-            item.append(details, button);
-            fragment.append(item);
-          });
-
-          list.append(fragment);
-          status.textContent = '';
-          filterItems();
-        } catch (error) {
-          status.textContent = error.message;
-          filterItems();
-        }
-      }
-
       async function loadGamsGames() {
         try {
           const response = await fetch('gams-games.json');
@@ -673,7 +628,7 @@
         }
       }
 
-      Promise.all([loadGames(), loadGamsGames(), loadGameListGames()]).then(() => {
+      Promise.all([loadGamsGames(), loadGameListGames()]).then(() => {
         deduplicateGames();
         filterItems();
       });
