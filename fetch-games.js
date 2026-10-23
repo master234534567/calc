@@ -8,28 +8,37 @@ const sources = [
   { owner: 'UBGHyper', repo: 'ubg42.github.io', folder: 'games', target: './ubg-games' }
 ];
 
-async function fetchRepoTree(owner, repo) {
-  const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`;
+function makeRequest(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { 'User-Agent': 'Node.js' } }, (res) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'Node.js-Codespace-Scraper' } }, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        return makeRequest(res.headers.location).then(resolve).catch(reject);
+      }
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
-          resolve(JSON.parse(data));
+          resolve({ statusCode: res.statusCode, body: JSON.parse(data) });
         } catch (e) {
-          // Try 'master' branch if 'main' fails
-          const fallbackUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`;
-          https.get(fallbackUrl, { headers: { 'User-Agent': 'Node.js' } }, (res2) => {
-            let data2 = '';
-            res2.on('data', chunk => data2 += chunk);
-            res2.on('end', () => resolve(JSON.parse(data2)));
-          });
+          resolve({ statusCode: res.statusCode, body: null });
         }
       });
     });
     req.on('error', reject);
   });
+}
+
+async function fetchCompleteTree(owner, repo) {
+  const branches = ['master', 'main'];
+  for (const branch of branches) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
+    const response = await makeRequest(url);
+    if (response.statusCode === 200 && response.body && response.body.tree) {
+      console.log(`Successfully fetched tree from branch '${branch}' for ${repo}`);
+      return { branch, tree: response.body.tree };
+    }
+  }
+  return { branch: null, tree: [] };
 }
 
 async function downloadFile(rawUrl, destPath) {
@@ -50,32 +59,37 @@ async function downloadFile(rawUrl, destPath) {
 }
 
 async function run() {
-  console.log('Finding and downloading all game HTML files...');
+  console.log('--- Starting Deep Search for All Game HTML Files ---');
+  let totalDownloaded = 0;
+
   for (const src of sources) {
     console.log(`\nScanning ${src.owner}/${src.repo}...`);
-    const treeData = await fetchRepoTree(src.owner, src.repo);
-    
-    if (!treeData.tree) {
-      console.log(`Failed to fetch tree for ${src.repo}`);
+    const { branch, tree } = await fetchCompleteTree(src.owner, src.repo);
+
+    if (!tree || tree.length === 0) {
+      console.log(`Warning: Could not fetch tree for ${src.owner}/${src.repo}`);
       continue;
     }
 
-    const htmlFiles = treeData.tree.filter(item => {
-      const isHtml = item.path.endsWith('.html');
+    const htmlFiles = tree.filter(item => {
+      const isHtml = item.path.toLowerCase().endsWith('.html') || item.path.toLowerCase().endsWith('.htm');
       const inFolder = src.folder ? item.path.startsWith(src.folder) : true;
       return item.type === 'blob' && isHtml && inFolder;
     });
 
-    console.log(`Found ${htmlFiles.length} HTML files.`);
+    console.log(`Found ${htmlFiles.length} HTML files in ${src.repo} on branch '${branch}'.`);
 
     for (const file of htmlFiles) {
-      const rawUrl = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/HEAD/${file.path}`;
-      const localPath = path.join(src.target, file.path.replace(src.folder, ''));
-      console.log(`Downloading: ${file.path}`);
+      const rawUrl = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/${branch}/${file.path}`;
+      const relativePath = src.folder ? file.path.substring(src.folder.length).replace(/^\//, '') : file.path;
+      const localPath = path.join(src.target, relativePath);
+      
       await downloadFile(rawUrl, localPath);
+      totalDownloaded++;
     }
   }
-  console.log('\nDone downloading all HTML game files!');
+
+  console.log(`\nSuccess! Downloaded a total of ${totalDownloaded} HTML game files.`);
 }
 
 run();
