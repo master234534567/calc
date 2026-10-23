@@ -419,13 +419,23 @@
       }
 
       function deduplicateGames() {
-        const lastByTitle = new Map();
+        const firstByTitle = new Map();
         list.querySelectorAll('.item').forEach((item) => {
           if (item.dataset.category === 'roms') return;
           const title = item.querySelector('.item-title').textContent;
           const key = normalizeTitle(title);
-          lastByTitle.get(key)?.remove();
-          lastByTitle.set(key, item);
+          const existing = firstByTitle.get(key);
+          if (!existing) {
+            firstByTitle.set(key, item);
+            return;
+          }
+
+          if (item.dataset.source === 'offline' && existing.dataset.source !== 'offline') {
+            existing.remove();
+            firstByTitle.set(key, item);
+          } else {
+            item.remove();
+          }
         });
       }
 
@@ -545,6 +555,49 @@
         search.focus();
       });
 
+      async function loadOfflineGames() {
+        try {
+          const response = await fetch('offline-local-games.json');
+          if (!response.ok) {
+            throw new Error(`Unable to load offline game list (${response.status})`);
+          }
+
+          const filenames = await response.json();
+          const fragment = document.createDocumentFragment();
+          filenames.forEach((filename) => {
+            const title = getTitle(filename);
+            const item = document.createElement('li');
+            item.className = 'item';
+            item.dataset.category = getCategory(filename);
+            item.dataset.source = 'offline';
+            item.dataset.name = `${title} ${filename}`.toLowerCase();
+
+            const details = document.createElement('div');
+            const titleElement = document.createElement('span');
+            titleElement.className = 'item-title';
+            titleElement.textContent = title;
+            const kind = document.createElement('span');
+            kind.className = 'item-kind';
+            kind.textContent = 'Offline HTML';
+            details.append(titleElement, kind);
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.page = new URL(
+              `Offline-HTML-Games-Pack-master/offline/${encodeURIComponent(filename)}`,
+              document.baseURI
+            ).href;
+            button.textContent = 'Open';
+            item.append(details, button);
+            fragment.append(item);
+          });
+
+          list.append(fragment);
+        } catch (error) {
+          status.textContent = `${status.textContent ? `${status.textContent} ` : ''}${error.message}`;
+        }
+      }
+
       async function loadGamsGames() {
         try {
           const response = await fetch('gams-games.json');
@@ -628,7 +681,7 @@
         }
       }
 
-      Promise.all([loadGamsGames(), loadGameListGames()]).then(() => {
+      Promise.all([loadOfflineGames(), loadGamsGames(), loadGameListGames()]).then(() => {
         deduplicateGames();
         filterItems();
       });
