@@ -1,652 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Library</title>
-    <style>
-      :root {
-        color-scheme: light;
-        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-        color: #17231e;
-        background: #eef3ef;
-        --ink: #17231e;
-        --muted: #68766f;
-        --line: #d8e1db;
-        --green: #176b52;
-        --green-dark: #10543f;
-        --paper: #fff;
-        --accent: #c56742;
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Game Library</title>
+  <style>
+    body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
+    h1 { text-align: center; color: #4CAF50; }
+    .search-container { max-width: 600px; margin: 0 auto 20px; text-align: center; }
+    input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #333; background: #1e1e1e; color: #fff; box-sizing: border-box; }
+    ul { list-style: none; padding: 0; max-width: 800px; margin: 0 auto; }
+    .item { display: flex; justify-content: space-between; align-items: center; background: #1e1e1e; padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #2a2a2a; }
+    .item-title { font-weight: bold; font-size: 16px; }
+    button { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #45a049; }
+    #status { text-align: center; color: #888; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Local Game Library</h1>
+  <div class="search-container">
+    <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
+  </div>
+  <div id="status">Loading games...</div>
+  <ul id="list"></ul>
 
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        min-height: 100vh;
-        margin: 0;
-        background:
-          linear-gradient(115deg, rgba(255, 255, 255, 0.78), rgba(239, 245, 240, 0.86)),
-          repeating-linear-gradient(135deg, #edf3ef 0, #edf3ef 1px, #f5f7f4 1px, #f5f7f4 8px);
-      }
-
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        min-height: 68px;
-        padding: 0 max(24px, calc((100vw - 1080px) / 2));
-        border-bottom: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.92);
-      }
-
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--green);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      .brand::before {
-        width: 9px;
-        height: 23px;
-        background: var(--accent);
-        content: "";
-      }
-
-      main {
-        width: min(100% - 48px, 1080px);
-        margin: 54px auto 72px;
-      }
-
-      .heading {
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 24px;
-        margin-bottom: 30px;
-      }
-
-      h1 {
-        margin: 0 0 9px;
-        color: var(--ink);
-        font: 400 48px/1.05 Georgia, "Times New Roman", serif;
-      }
-
-      .subheading,
-      .count,
-      .item-kind,
-      #status {
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      .subheading {
-        margin: 0;
-      }
-
-      .search {
-        width: min(100%, 300px);
-        height: 44px;
-        padding: 0 14px;
-        border: 1px solid #c4d1c9;
-        border-radius: 6px;
-        background: var(--paper);
-        color: inherit;
-        font: inherit;
-        box-shadow: 0 2px 8px rgba(31, 58, 44, 0.04);
-      }
-
-      .tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 22px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .tab {
-        min-width: 0;
-        height: 38px;
-        padding: 0 14px;
-        border: 1px solid transparent;
-        border-radius: 5px;
-        background: transparent;
-        color: #52635a;
-        font-size: 13px;
-        font-weight: 600;
-      }
-
-      .tab:hover { background: #e4ece6; }
-
-      .tab[aria-selected="true"] {
-        border-color: var(--green);
-        background: var(--green);
-        color: #fff;
-      }
-
-      .list {
-        margin: 0;
-        padding: 0;
-        border-top: 1px solid var(--line);
-        list-style: none;
-      }
-
-      .item {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 20px;
-        min-height: 76px;
-        padding: 15px 12px;
-        border-bottom: 1px solid var(--line);
-        transition: background 120ms ease;
-      }
-
-      .item:hover {
-        background: rgba(255, 255, 255, 0.72);
-      }
-
-      .item[hidden] {
-        display: none;
-      }
-
-      .item-title {
-        display: block;
-        margin-bottom: 5px;
-        color: var(--ink);
-        font-size: 15px;
-        font-weight: 650;
-      }
-
-      .item-kind {
-        display: block;
-        font-size: 12px;
-      }
-
-      button {
-        min-width: 82px;
-        height: 38px;
-        padding: 0 14px;
-        border: 1px solid var(--green);
-        border-radius: 5px;
-        background: var(--green);
-        color: #fff;
-        font: inherit;
-        cursor: pointer;
-      }
-
-      button:hover {
-        border-color: var(--green-dark);
-        background: var(--green-dark);
-      }
-
-      button:focus-visible,
-      .search:focus-visible,
-      .tab:focus-visible {
-        outline: 3px solid #9bc8b5;
-        outline-offset: 2px;
-      }
-
-      #status {
-        min-height: 20px;
-        margin-top: 18px;
-      }
-
-      #player {
-        position: fixed;
-        z-index: 5;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        background: #000;
-        cursor: auto !important;
-      }
-
-      #player[hidden] {
-        display: none;
-      }
-
-      .player-bar {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        min-height: 52px;
-        padding: 0 12px;
-        background: #fff;
-        cursor: auto;
-      }
-
-      .player-name {
-        overflow: hidden;
-        font-size: 14px;
-        font-weight: 600;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      #game-frame {
-        width: 100%;
-        min-height: 0;
-        flex: 1;
-        border: 0;
-        background: #000;
-      }
-
-      #load-overlay {
-        position: absolute;
-        inset: 52px 0 0;
-        z-index: 1;
-        display: grid;
-        place-content: center;
-        gap: 12px;
-        padding: 24px;
-        background: #000;
-        color: #fff;
-        font-size: 15px;
-        text-align: center;
-      }
-
-      #load-overlay[hidden],
-      #load-timeout[hidden] {
-        display: none;
-      }
-
-      .loading-spinner {
-        width: 32px;
-        height: 32px;
-        margin: 0 auto;
-        border: 3px solid #53615a;
-        border-top-color: #79d3b0;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-
-      #player-name {
-        flex: 1;
-      }
-
-      @media (max-width: 560px) {
-        header {
-          min-height: 60px;
-        }
-
-        main {
-          width: min(100% - 32px, 1080px);
-          margin-top: 34px;
-        }
-
-        .heading {
-          align-items: stretch;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        h1 {
-          font-size: 40px;
-        }
-
-        .search {
-          width: 100%;
-        }
-
-        .tabs {
-          gap: 4px;
-        }
-
-        .tab {
-          padding: 0 10px;
-        }
-
-        .item {
-          gap: 12px;
-          padding-right: 4px;
-          padding-left: 8px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <span class="brand">Library</span>
-      <span class="count" id="count">Loading...</span>
-    </header>
-    <main>
-      <div class="heading">
-        <div>
-          <h1>Library</h1>
-          <p class="subheading">Choose an item to open.</p>
-        </div>
-        <input class="search" id="search" type="search" placeholder="Filter items" aria-label="Filter items" />
-      </div>
-      <nav class="tabs" id="tabs" role="tablist" aria-label="Library sections">
-        <button class="tab" id="tab-all" type="button" role="tab" aria-selected="true" aria-controls="items" data-category="all">All Games</button>
-        <button class="tab" id="tab-other" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="other" tabindex="-1">Other fun calc</button>
-        <button class="tab" id="tab-mine" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="mine" tabindex="-1">Mine Calc</button>
-        <button class="tab" id="tab-ice-cream" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="bad-ice-cream" tabindex="-1">Bad Ice Cream Guy Calc</button>
-        <button class="tab" id="tab-roms" type="button" role="tab" aria-selected="false" aria-controls="items" data-category="roms" tabindex="-1">ROM Files</button>
-      </nav>
-      <ul class="list" id="items" role="tabpanel" aria-labelledby="tab-all">
-        <li class="item" data-category="other" data-name="cloverpit">
-          <div>
-            <span class="item-title">CloverPit</span>
-            <span class="item-kind">Local build</span>
-          </div>
-          <button type="button" data-page="game.html">Open</button>
-        </li>
-        <li class="item" data-category="roms" data-name="3ds rom emulator">
-          <div>
-            <span class="item-title">WebRetro</span>
-            <span class="item-kind">External emulator</span>
-          </div>
-          <button type="button" data-page="https://only-game.github.io/emulation/webretro/index.html" data-external="true">Open</button>
-        </li>
-      </ul>
-      <p id="status" role="status" aria-live="polite">Loading games...</p>
-    </main>
-    <section id="player" hidden>
-      <div class="player-bar">
-        <button type="button" id="back-to-library">Back</button>
-        <span class="player-name" id="player-name"></span>
-        <button type="button" id="retry-game">Reload</button>
-      </div>
-      <div id="load-overlay" role="status" aria-live="polite">
-        <span class="loading-spinner" aria-hidden="true"></span>
-        <span id="load-message">Loading page...</span>
-        <span id="load-timeout" hidden>This is taking a while. Use Reload to try again.</span>
-      </div>
-      <iframe id="game-frame" title="Selected game" allow="autoplay; fullscreen; gamepad; pointer-lock" allowfullscreen></iframe>
-    </section>
   <script>
-      const list = document.getElementById('items');
-      const search = document.getElementById('search');
-      const count = document.getElementById('count');
-      const status = document.getElementById('status');
-      const tabs = document.getElementById('tabs');
-      const itemsPanel = document.getElementById('items');
-      const player = document.getElementById('player');
-      const gameFrame = document.getElementById('game-frame');
-      const playerName = document.getElementById('player-name');
-      const loadOverlay = document.getElementById('load-overlay');
-      const loadMessage = document.getElementById('load-message');
-      const loadTimeout = document.getElementById('load-timeout');
-      let activeCategory = 'all';
-      let activeGameUrl = '';
-      let loadTimer = null;
+    const list = document.getElementById("list");
+    const status = document.getElementById("status");
+    const search = document.getElementById("search");
 
-      const mineCalcFiles = new Set([
-        '1.12_wasm.html', '1.12.html', '1.5.html', '1.8_wasm.html', '1.8.html',
-        'alpha_1.2.6.html', 'beta_1.3.html', 'indev.html',
-      ]);
-      const badIceCreamFiles = new Set([
-        'bad-ice-cream.html', 'bad-ice-cream-2.html', 'bad-ice-cream-3.html',
-      ]);
-
-      function getCategory(filename) {
-        const normalizedName = filename.toLowerCase();
-        if (mineCalcFiles.has(normalizedName)) return 'mine';
-        if (badIceCreamFiles.has(normalizedName)) return 'bad-ice-cream';
-        return 'other';
+    function getTitle(filename) {
+      let base = filename;
+      const lower = filename.toLowerCase();
+      if (lower.endsWith("/index.html") || lower.endsWith("/index.htm")) {
+        const parts = filename.split("/");
+        base = parts[parts.length - 2] || parts[0];
+      } else {
+        base = filename.replace(/\.html?$/i, "");
       }
+      return base
+        .replace(/[-_]+/g, " ")
+        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+    }
 
-      function getTitle(filename) {
-        const normalizedName = filename.toLowerCase();
-        const specialTitles = {
-          '1.12_wasm.html': 'Minecraft 1.12 WASM',
-          '1.12.html': 'Minecraft 1.12',
-          '1.5.html': 'Minecraft 1.5',
-          '1.8_wasm.html': 'Minecraft 1.8 WASM',
-          '1.8.html': 'Minecraft 1.8',
-          'alpha_1.2.6.html': 'Minecraft Alpha 1.2.6',
-          'beta_1.3.html': 'Minecraft Beta 1.3',
-          'indev.html': 'Minecraft Indev',
-          'bad-ice-cream.html': 'Bad Ice Cream',
-          'bad-ice-cream-2.html': 'Bad Ice Cream 2',
-          'bad-ice-cream-3.html': 'Bad Ice Cream 3',
-        };
-        return specialTitles[normalizedName] || filename
-          .replace(/\.html?$/i, '')
-          .replace(/[-_]+/g, ' ')
-          .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
-      }
+    async function loadGames() {
+      try {
+        const response = await fetch("offline-games.json");
+        if (!response.ok) throw new Error("Unable to load game manifest.");
+        const filenames = await response.json();
+        
+        list.innerHTML = "";
+        const fragment = document.createDocumentFragment();
 
-      function normalizeTitle(title) {
-        return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      }
+        filenames.forEach((filename) => {
+          const title = getTitle(filename);
+          const item = document.createElement("li");
+          item.className = "item";
+          item.dataset.name = `${title} ${filename}`.toLowerCase();
 
-      function deduplicateGames() {
-        const lastByTitle = new Map();
-        list.querySelectorAll('.item').forEach((item) => {
-          if (item.dataset.category === 'roms') return;
-          const title = item.querySelector('.item-title').textContent;
-          const key = normalizeTitle(title);
-          lastByTitle.get(key)?.remove();
-          lastByTitle.set(key, item);
+          const details = document.createElement("div");
+          const titleElement = document.createElement("span");
+          titleElement.className = "item-title";
+          titleElement.textContent = title;
+          details.append(titleElement);
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = "Play";
+          button.onclick = () => { window.location.href = filename; };
+
+          item.append(details, button);
+          fragment.append(item);
         });
-      }
 
-      function filterItems() {
-        const query = search.value.trim().toLowerCase();
-        let visibleCount = 0;
-        list.querySelectorAll('.item').forEach((item) => {
-          const inCategory = activeCategory === 'all'
-            ? item.dataset.category !== 'roms'
-            : item.dataset.category === activeCategory;
-          const visible = inCategory && item.dataset.name.includes(query);
-          item.hidden = !visible;
-          visibleCount += Number(visible);
-        });
-        count.textContent = `${visibleCount} ${visibleCount === 1 ? 'game' : 'games'}`;
-      }
-
-      search.addEventListener('input', filterItems);
-
-      tabs.addEventListener('click', (event) => {
-        const selectedTab = event.target.closest('[role="tab"]');
-        if (!selectedTab) return;
-        activeCategory = selectedTab.dataset.category;
-        tabs.querySelectorAll('[role="tab"]').forEach((tab) => {
-          const selected = tab === selectedTab;
-          tab.setAttribute('aria-selected', String(selected));
-          tab.tabIndex = selected ? 0 : -1;
-        });
-        itemsPanel.setAttribute('aria-labelledby', selectedTab.id);
+        list.append(fragment);
+        status.textContent = filenames.length === 0 ? "No games found in local folders." : "";
         filterItems();
-      });
-
-      tabs.addEventListener('keydown', (event) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-        const tabButtons = [...tabs.querySelectorAll('[role="tab"]')];
-        const currentIndex = tabButtons.indexOf(document.activeElement);
-        if (currentIndex < 0) return;
-        event.preventDefault();
-        const direction = event.key === 'ArrowRight' ? 1 : -1;
-        const nextTab = tabButtons[(currentIndex + direction + tabButtons.length) % tabButtons.length];
-        nextTab.focus();
-        nextTab.click();
-      });
-
-      list.addEventListener('click', async (event) => {
-        const button = event.target.closest('[data-page]');
-        if (!button) {
-          return;
-        }
-
-        status.textContent = 'Opening...';
-        try {
-          const targetUrl = new URL(button.dataset.page, document.baseURI);
-          activeGameUrl = targetUrl.href;
-          playerName.textContent = button.closest('.item').querySelector('.item-title').textContent;
-          player.hidden = false;
-          document.querySelector('header').hidden = true;
-          document.querySelector('main').hidden = true;
-          status.textContent = '';
-          startGameLoad();
-        } catch (error) {
-          status.textContent = error.message;
-        }
-      });
-
-      function restorePointer() {
-        try {
-          gameFrame.contentDocument.exitPointerLock();
-          gameFrame.contentDocument.exitFullscreen();
-        } catch {}
-        try {
-          document.exitPointerLock();
-          if (document.fullscreenElement) {
-            document.exitFullscreen();
-          }
-        } catch {}
-        document.documentElement.style.cursor = 'auto';
-        document.body.style.cursor = 'auto';
+      } catch (error) {
+        status.textContent = error.message;
       }
+    }
 
-      function startGameLoad() {
-        clearTimeout(loadTimer);
-        loadOverlay.hidden = false;
-        loadTimeout.hidden = true;
-        loadMessage.textContent = 'Loading page...';
-        gameFrame.src = activeGameUrl;
-        loadTimer = setTimeout(() => {
-          if (!player.hidden) {
-            loadMessage.textContent = 'The page has not finished loading.';
-            loadTimeout.hidden = false;
-          }
-        }, 20000);
+    function filterItems() {
+      const query = search.value.toLowerCase();
+      const items = list.getElementsByClassName("item");
+      for (let item of items) {
+        const name = item.dataset.name;
+        item.style.display = name.includes(query) ? "flex" : "none";
       }
+    }
 
-      gameFrame.addEventListener('load', () => {
-        clearTimeout(loadTimer);
-        loadOverlay.hidden = true;
-      });
-
-      gameFrame.addEventListener('error', () => {
-        clearTimeout(loadTimer);
-        loadMessage.textContent = 'This page could not be loaded.';
-        loadTimeout.hidden = false;
-        loadOverlay.hidden = false;
-      });
-
-      document.getElementById('retry-game').addEventListener('click', startGameLoad);
-
-      document.getElementById('back-to-library').addEventListener('click', () => {
-        clearTimeout(loadTimer);
-        restorePointer();
-        activeGameUrl = '';
-        gameFrame.src = 'about:blank';
-        player.hidden = true;
-        document.querySelector('header').hidden = false;
-        document.querySelector('main').hidden = false;
-        search.focus();
-      });
-
-      // 1. Loads offline games locally from 'offline-games.json'
-      async function loadGames() {
-        try {
-          const response = await fetch('offline-games.json');
-          if (!response.ok) {
-            throw new Error(`Unable to load game list (${response.status})`);
-          }
-
-          const filenames = await response.json();
-          const fragment = document.createDocumentFragment();
-          filenames.forEach((filename) => {
-            const title = getTitle(filename);
-            const item = document.createElement('li');
-            item.className = 'item';
-            item.dataset.category = getCategory(filename);
-            item.dataset.name = `${title} ${filename}`.toLowerCase();
-
-            const details = document.createElement('div');
-            const titleElement = document.createElement('span');
-            titleElement.className = 'item-title';
-            titleElement.textContent = title;
-            const kind = document.createElement('span');
-            kind.className = 'item-kind';
-            kind.textContent = 'Offline HTML';
-            details.append(titleElement, kind);
-
-            const button = document.createElement('button');
-            button.type = 'button';
-            // Pure local relative path
-            button.dataset.page = new URL(
-              `offline/${encodeURIComponent(filename)}`,
-<<<<<<< HEAD
-              document.baseURI
-=======
-              'https://raw.githack.com/CoolDude2349/Offline-HTML-Games-Pack/master/'
->>>>>>> 880c0942b281cb105164f005d1bd1f5fcecc27c5
-            ).href;
-            button.textContent = 'Open';
-            item.append(details, button);
-            fragment.append(item);
-          });
-
-          list.append(fragment);
-          status.textContent = '';
-          filterItems();
-        } catch (error) {
-          status.textContent = error.message;
-          filterItems();
-        }
-      }
-
-      // 2. Loads local repository games from 'games-manifest.json'
-      async function loadLocalGames() {
-        try {
-          const response = await fetch('games-manifest.json');
-          if (!response.ok) {
-            throw new Error(`Unable to load local games list (${response.status})`);
-          }
-
-          const games = await response.json();
-          const fragment = document.createDocumentFragment();
-          games.forEach((game) => {
-            const item = document.createElement('li');
-            item.className = 'item';
-            item.dataset.category = 'other';
-            item.dataset.name = game.name.toLowerCase();
-
-            const details = document.createElement('div');
-            const titleElement = document.createElement('span');
-            titleElement.className = 'item-title';
-            titleElement.textContent = game.name;
-            const kind = document.createElement('span');
-            kind.className = 'item-kind';
-            kind.textContent = 'Local Repository';
-            details.append(titleElement, kind);
-
-            const button = document.createElement('button');
-            button.type = 'button';
-            // Pure local relative path
-            button.dataset.page = new URL(game.path, document.baseURI).href;
-            button.textContent = 'Open';
-            item.append(details, button);
-            fragment.append(item);
-          });
-
-          list.append(fragment);
-        } catch (error) {
-          status.textContent = `${status.textContent ? `${status.textContent} ` : ''}Local games collection is unavailable.`;
-        }
-      }
-
-      Promise.all([loadGames(), loadLocalGames()]).then(() => {
-        deduplicateGames();
-        filterItems();
-      });
-    </script>
-  </body>
+    loadGames();
+  </script>
+</body>
 </html>
