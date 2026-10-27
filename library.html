@@ -31,12 +31,50 @@
     const search = document.getElementById("search");
 
     function getTitle(filename) {
-      let base = filename;
-      const lower = filename.toLowerCase();
-      if (lower.endsWith("/index.html") || lower.endsWith("/index.htm")) {
-        const parts = filename.split("/");
-        base = parts[parts.length - 2] || parts[0];
-      } else {
+      if (!filename) return "";
+      let base = filename.toString();
+      
+      // Remove file extension
+      base = base.replace(/\.(html|htm)$/i, "");
+      
+      // If it ends with index, grab the parent folder name
+      if (/\/index$/i.test(base) || /^index$/i.test(base)) {
+        base = base.replace(/\/index$/i, "");
+      }
+      
+      let parts = base.split("/").filter(Boolean);
+      
+      // If we have parts, pick the best meaningful title part
+      // Usually the folder name right before index, or the last segment
+      if (parts.length > 0) {
+        // Filter out generic boilerplate folder names if there are deeper specific folders
+        const boilerplate = ["offline html games pack master", "gamelist", "offline", "originals", "patch", "dist", "build"];
+        
+        // Find the last part that is NOT a generic wrapper word
+        let selected = parts[parts.length - 1];
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const p = parts[i].toLowerCase().trim();
+          if (!boilerplate.includes(p)) {
+            selected = parts[i];
+            break;
+          }
+        }
+        base = selected;
+      }
+
+      // Clean up clutter words, hyphens, and underscores
+      base = base.replace(/offline\s*pack/gi, "")
+                 .replace(/offline html games pack master/gi, "")
+                 .replace(/gamelist/gi, "")
+                 .replace(/offline/gi, "")
+                 .replace(/[-_]+/g, " ")
+                 .trim();
+
+      if (!base) base = filename;
+
+      // Capitalize nicely
+      return base.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    } else {
         base = filename.replace(/\.html?$/i, "");
       }
       return base
@@ -94,37 +132,7 @@
     loadGames();
   </script>
 
-<script>
-// Automatically clean any raw path into a pretty game title
-function formatGameTitle(pathStr) {
-  if (!pathStr) return "";
-  let name = pathStr.toString();
-  
-  // Remove file extension (.html, .htm)
-  name = name.replace(/\.(html|htm)$/i, "");
-  
-  // Remove trailing /index or index
-  name = name.replace(/\/index$/i, "").replace(/^index$/i, "");
-  
-  // Take the last meaningful path segment if nested
-  let parts = name.split("/").filter(Boolean);
-  if (parts.length > 0) {
-    name = parts[parts.length - 1];
-  }
-  
-  // Strip out clutter words like "offline pack", "gamelist", "offline", etc.
-  name = name.replace(/offline\s*pack/gi, "")
-             .replace(/gamelist/gi, "")
-             .replace(/offline/gi, "")
-             .replace(/[-_]+/g, " ")
-             .trim();
-  
-  if (!name) name = pathStr;
-  
-  // Capitalize properly
-  return name.replace(/\b\w/g, l => l.toUpperCase());
-}
-</script>
+
 
 </body>
 </html>
