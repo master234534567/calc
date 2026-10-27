@@ -46,7 +46,7 @@
 
     async function loadGames() {
       try {
-        const response = await fetch("offline-games.json");
+        const response = await fetch("games-manifest.json");
         if (!response.ok) throw new Error("Unable to load game manifest.");
         const filenames = await response.json();
         
