@@ -5,43 +5,78 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Library</title>
   <style>
+    * { box-sizing: border-box; }
     body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
-    h1 { text-align: center; color: #4CAF50; }
+    h1 { text-align: center; color: #4CAF50; margin-top: 0; }
     .search-container { max-width: 600px; margin: 0 auto 20px; text-align: center; }
-    input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #333; background: #1e1e1e; color: #fff; box-sizing: border-box; }
+    input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #333; background: #1e1e1e; color: #fff; }
     ul { list-style: none; padding: 0; max-width: 800px; margin: 0 auto; }
     .item { display: flex; justify-content: space-between; align-items: center; background: #1e1e1e; padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #2a2a2a; }
     .item-title { font-weight: bold; font-size: 16px; }
     button { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     button:hover { background: #45a049; }
     #status { text-align: center; color: #888; margin-top: 20px; }
+
+    /* Fullscreen Game Player View */
+    #game-container {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000; z-index: 9999;
+      flex-direction: column;
+    }
+    .top-bar {
+      height: 48px; background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #333;
+    }
+    .top-bar-title { font-weight: bold; font-size: 16px; color: #fff; }
+    .btn-group { display: flex; gap: 10px; }
+    .top-btn {
+      background: #333; color: #fff; border: 1px solid #555; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;
+    }
+    .top-btn:hover { background: #444; }
+    .top-btn.reload-btn { background: #4CAF50; border-color: #4CAF50; }
+    .top-btn.reload-btn:hover { background: #45a049; }
+    iframe { flex: 1; width: 100%; border: none; }
   </style>
 </head>
 <body>
-  <h1>Library</h1>
-  <div class="search-container">
-    <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
+
+  <div id="library-view">
+    <h1>Library</h1>
+    <div class="search-container">
+      <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
+    </div>
+    <div id="status">Loading games...</div>
+    <ul id="list"></ul>
   </div>
-  <div id="status">Loading games...</div>
-  <ul id="list"></ul>
+
+  <div id="game-container">
+    <div class="top-bar">
+      <span class="top-bar-title" id="current-game-title">Game</span>
+      <div class="btn-group">
+        <button class="top-btn reload-btn" onclick="reloadGame()">Reload</button>
+        <button class="top-btn" onclick="closeGame()">Back to Library</button>
+      </div>
+    </div>
+    <iframe id="game-frame" src=""></iframe>
+  </div>
 
   <script>
     const list = document.getElementById("list");
     const status = document.getElementById("status");
     const search = document.getElementById("search");
+    const gameContainer = document.getElementById("game-container");
+    const gameFrame = document.getElementById("game-frame");
+    const currentGameTitle = document.getElementById("current-game-title");
 
     function getTitle(filename) {
       if (!filename) return "";
       let base = filename.toString();
-      
       base = base.replace(/\.(html|htm)$/i, "");
-      
       if (/\/index$/i.test(base) || /^index$/i.test(base)) {
         base = base.replace(/\/index$/i, "");
       }
-      
       let parts = base.split("/").filter(Boolean);
-      
       if (parts.length > 0) {
         const boilerplate = ["offline html games pack master", "gamelist", "offline", "originals", "patch", "dist", "build"];
         let selected = parts[parts.length - 1];
@@ -54,17 +89,31 @@
         }
         base = selected;
       }
-
       base = base.replace(/offline\s*pack/gi, "")
                  .replace(/offline html games pack master/gi, "")
                  .replace(/gamelist/gi, "")
                  .replace(/offline/gi, "")
                  .replace(/[-_]+/g, " ")
                  .trim();
-
       if (!base) base = filename;
-
       return base.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    function openGame(url, title) {
+      currentGameTitle.textContent = title;
+      gameFrame.src = url;
+      gameContainer.style.display = "flex";
+    }
+
+    function reloadGame() {
+      if (gameFrame.src) {
+        gameFrame.contentWindow.location.reload();
+      }
+    }
+
+    function closeGame() {
+      gameContainer.style.display = "none";
+      gameFrame.src = "";
     }
 
     async function loadGames() {
@@ -91,14 +140,14 @@
           const button = document.createElement("button");
           button.type = "button";
           button.textContent = "Play";
-          button.onclick = () => { window.location.href = filename; };
+          button.onclick = () => openGame(filename, title);
 
           item.append(details, button);
           fragment.append(item);
         });
 
         list.append(fragment);
-        status.textContent = filenames.length === 0 ? "No games found in local folders." : "";
+        status.textContent = filenames.length === 0 ? "No games found." : "";
         filterItems();
       } catch (error) {
         status.textContent = error.message;
