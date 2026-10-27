@@ -34,23 +34,16 @@
       if (!filename) return "";
       let base = filename.toString();
       
-      // Remove file extension
       base = base.replace(/\.(html|htm)$/i, "");
       
-      // If it ends with index, grab the parent folder name
       if (/\/index$/i.test(base) || /^index$/i.test(base)) {
         base = base.replace(/\/index$/i, "");
       }
       
       let parts = base.split("/").filter(Boolean);
       
-      // If we have parts, pick the best meaningful title part
-      // Usually the folder name right before index, or the last segment
       if (parts.length > 0) {
-        // Filter out generic boilerplate folder names if there are deeper specific folders
         const boilerplate = ["offline html games pack master", "gamelist", "offline", "originals", "patch", "dist", "build"];
-        
-        // Find the last part that is NOT a generic wrapper word
         let selected = parts[parts.length - 1];
         for (let i = parts.length - 1; i >= 0; i--) {
           const p = parts[i].toLowerCase().trim();
@@ -62,7 +55,6 @@
         base = selected;
       }
 
-      // Clean up clutter words, hyphens, and underscores
       base = base.replace(/offline\s*pack/gi, "")
                  .replace(/offline html games pack master/gi, "")
                  .replace(/gamelist/gi, "")
@@ -72,14 +64,7 @@
 
       if (!base) base = filename;
 
-      // Capitalize nicely
       return base.replace(/\b\w/g, (letter) => letter.toUpperCase());
-    } else {
-        base = filename.replace(/\.html?$/i, "");
-      }
-      return base
-        .replace(/[-_]+/g, " ")
-        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
     }
 
     async function loadGames() {
@@ -131,8 +116,5 @@
 
     loadGames();
   </script>
-
-
-
 </body>
 </html>
