@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Emulator",
+    "path": "emulator/index.html"
+  },
+  {
+    "name": "Game",
+    "path": "game.html"
+  },
+  {
+    "name": "Gamelist Local",
+    "path": "gamelist-local/index.html"
+  },
+  {
+    "name": "Index",
+    "path": "index.html"
+  },
+  {
+    "name": "Single File",
+    "path": "single-file.html"
+  }
+]
