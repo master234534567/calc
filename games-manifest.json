@@ -147,7 +147,6 @@
   "Offline-HTML-Games-Pack-master/offline/fruit-ninja.html",
   "Offline-HTML-Games-Pack-master/offline/funny-battle-2.html",
   "Offline-HTML-Games-Pack-master/offline/funny-battle.html",
-  "emulator/index.html",
   "game.html",
   "gamelist/10-Minutes-Till-Dawn/index.html",
   "gamelist/1v1-LOL/index.html",
@@ -952,7 +951,6 @@
   "gamelist/circloO/index.html",
   "gamelist/gunspin/index.html",
   "gamelist/hollowknight/index.html",
-  "gamelist/index.html",
   "gamelist/journey-downhill/index.html",
   "gamelist/myTeardrop/index.html",
   "gamelist/n-gon/index.html",
@@ -963,7 +961,5 @@
   "gamelist/shapez-Demo-Factory-Automation-Game/index.html",
   "gamelist/slitherio/index.html",
   "gamelist/split/index.html",
-  "index.html",
-  "library.html",
   "single-file.html"
 ]
