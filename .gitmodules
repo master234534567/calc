@@ -1,0 +1,3 @@
+[submodule "gamelist"]
+	path = gamelist
+	url = https://github.com/UBGHyper/GameList.github.io.git
