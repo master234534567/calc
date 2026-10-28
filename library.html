@@ -38,6 +38,47 @@
     .top-btn.reload-btn:hover { background: #45a049; }
     iframe { flex: 1; width: 100%; border: none; }
   </style>
+
+<style id="fullscreen-style">
+  .fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 9999;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  .fullscreen-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+  }
+</style>
+
+
+<script id="fullscreen-script">
+  function toggleFullScreen(elementId) {
+    const el = elementId ? document.getElementById(elementId) : document.documentElement;
+    if (!document.fullscreenElement) {
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) { /* Safari */
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) { /* IE11 */
+        el.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+</script>
+
 </head>
 <body>
 
