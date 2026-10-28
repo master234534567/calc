@@ -79,6 +79,41 @@
   }
 </script>
 
+
+<script id="autosave-script">
+  // Save last played game or scroll position automatically
+  window.addEventListener("beforeunload", () => {
+    try {
+      const activeGame = document.querySelector("iframe") ? document.querySelector("iframe").src : "";
+      const state = {
+        lastGame: activeGame,
+        scrollPos: window.scrollY,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("gameLibraryState", JSON.stringify(state));
+    } catch (e) {
+      console.error("Auto-save failed:", e);
+    }
+  });
+
+  // Restore state on load
+  window.addEventListener("DOMContentLoaded", () => {
+    try {
+      const saved = localStorage.getItem("gameLibraryState");
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.scrollPos) {
+          window.scrollTo(0, state.scrollPos);
+        }
+        // If you want to auto-load the last game, you can hook into this data here!
+        console.log("Restored previous session from:", new Date(state.timestamp).toLocaleTimeString());
+      }
+    } catch (e) {
+      console.error("Failed to load saved state:", e);
+    }
+  });
+</script>
+
 </head>
 <body>
 
