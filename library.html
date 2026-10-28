@@ -114,6 +114,32 @@
   });
 </script>
 
+
+<script id="safeloader-script">
+  function loadGameSafely(gameUrl) {
+    const container = document.getElementById("game-container") || document.body;
+    
+    // Remove existing game frame if any
+    const oldFrame = document.getElementById("active-game-frame");
+    if (oldFrame) oldFrame.remove();
+
+    const iframe = document.createElement("iframe");
+    iframe.id = "active-game-frame";
+    iframe.src = gameUrl;
+    iframe.width = "100%";
+    iframe.height = "100%";
+    // Sandbox restriction to protect the main library site from crashes
+    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-pointer-lock allow-forms");
+    iframe.style.border = "none";
+    
+    iframe.onerror = () => {
+      alert("Failed to load or execute this game. It might require specific server assets (like .wasm files).");
+    };
+
+    container.appendChild(iframe);
+  }
+</script>
+
 </head>
 <body>
 
