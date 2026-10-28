@@ -42,7 +42,8 @@
 <body>
 
   <div id="library-view">
-    <h1>Library</h1>\n    <div id="game-count" style="text-align: center; color: #888; margin-bottom: 15px; font-weight: bold;">Total Games: 0</div>
+    <h1>Library</h1>
+    <div id="game-count" style="text-align: center; color: #888; margin-bottom: 15px; font-weight: bold;">Total Games: 0</div>
     <div class="search-container">
       <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
     </div>
@@ -148,6 +149,7 @@
 
         list.append(fragment);
         status.textContent = filenames.length === 0 ? "No games found." : "";
+        document.getElementById("game-count").textContent = `Total Games: ${filenames.length}`;
         filterItems();
       } catch (error) {
         status.textContent = error.message;
