@@ -1,30 +1,45 @@
 const fs = require('fs');
+const path = require('path');
 
-const games = [
-  { title: "Thats Not My Neighbor", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=216" },
-  { title: "R.E.P.O", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=195" },
-  { title: "Celeste", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=623" },
-  { title: "Bendy and the ink machine", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=215" },
-  { title: "60 Seconds", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=858" },
-  { title: "They are Coming", url: "https://s3.amazonaws.com/prageru-server/mathematics.html?id=348" }
+const manifestPath = path.join(__dirname, 'games-manifest.json');
+
+// 1. Define the new games you want to add
+const newGames = [
+  {
+    title: "60 Seconds",
+    url: "./gamelist/60-seconds.html"
+  }
 ];
-let existingGames = [];
 
-if (fs.existsSync('games-manifest.json')) {
+// 2. Read existing games from games-manifest.json if it exists
+let existingGames = [];
+if (fs.existsSync(manifestPath)) {
   try {
-    const data = fs.readFileSync('games-manifest.json', 'utf8');
-    existingGames = JSON.parse(data);
+    const rawData = fs.readFileSync(manifestPath, 'utf8');
+    existingGames = JSON.parse(rawData);
+    console.log(`Loaded ${existingGames.length} existing games from manifest.`);
   } catch (err) {
-    console.log('Manifest was empty or invalid, starting fresh.');
+    console.error("Error reading existing manifest, starting with empty array:", err.message);
   }
 }
 
-// Combine old and new games safely
-const combinedGames = [...existingGames, ...newGames];
+// 3. Merge new games safely while guarding against missing properties
+newGames.forEach(newGame => {
+  const exists = existingGames.some(g => {
+    if (!g) return false;
+    const matchUrl = g.url && g.url === newGame.url;
+    const matchTitle = g.title && newGame.title && g.title.toLowerCase() === newGame.title.toLowerCase();
+    return matchUrl || matchTitle;
+  });
 
-fs.writeFileSync('games-manifest.json', JSON.stringify(combinedGames, null, 2));
-console.log('✅ games-manifest.json updated successfully!');
+  if (!exists) {
+    existingGames.push(newGame);
+    console.log(`Added new game: ${newGame.title}`);
+  } else {
+    console.log(`Game already in manifest: ${newGame.title}`);
+  }
+});
 
-
-
-
+// 4. Save the combined list back to games-manifest.json
+fs.writeFileSync(manifestPath, JSON.stringify(existingGames, null, 2), 'utf8');
+console.log(`Manifest updated successfully! Total games: ${existingGames.length}`);
