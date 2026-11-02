@@ -1,0 +1,4 @@
+base64.js
+main.js
+showads.js
+excanvas.compiled.js
