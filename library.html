@@ -237,7 +237,11 @@
           return;
         }
 
-        if (response.ok && response.headers.get("content-length") === "0") {
+        if (
+          url.startsWith("Offline-HTML-Games-Pack-master/offline/") &&
+          response.ok &&
+          response.headers.get("content-length") === "0"
+        ) {
           const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
           const key = normalizeGameName(filename);
           const fallback = gameFallbacks.get(key) || gameFallbacks.get(gameFallbackAliases.get(key));
