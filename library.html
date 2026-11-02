@@ -37,6 +37,8 @@
     .top-btn.reload-btn { background: #4CAF50; border-color: #4CAF50; }
     .top-btn.reload-btn:hover { background: #45a049; }
     iframe { flex: 1; width: 100%; border: none; }
+    #game-error { flex: 1; display: grid; place-items: center; padding: 24px; color: #ddd; text-align: center; }
+    #game-error[hidden] { display: none; }
   </style>
 
 <style id="fullscreen-style">
@@ -161,6 +163,7 @@
         <button class="top-btn" onclick="closeGame()">Back to Library</button>
       </div>
     </div>
+    <div id="game-error" role="status" hidden></div>
     <iframe id="game-frame" src=""></iframe>
   </div>
 
@@ -170,7 +173,14 @@
     const search = document.getElementById("search");
     const gameContainer = document.getElementById("game-container");
     const gameFrame = document.getElementById("game-frame");
+    const gameError = document.getElementById("game-error");
     const currentGameTitle = document.getElementById("current-game-title");
+    let gameFallbacks = new Map();
+    let gamePaths = new Set();
+
+    function normalizeGameName(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
 
     function getTitle(filename) {
       if (!filename) return "";
@@ -202,10 +212,45 @@
       return base.replace(/\b\w/g, (letter) => letter.toUpperCase());
     }
 
-    function openGame(url, title) {
+    async function openGame(url, title) {
       currentGameTitle.textContent = title;
-      gameFrame.src = url;
+      gameFrame.hidden = true;
+      gameError.hidden = true;
       gameContainer.style.display = "flex";
+
+      const nestedGame = url.match(/^gamelist\/([^/]+)\//i);
+      if (nestedGame) {
+        const parentGame = `gamelist/${nestedGame[1]}/index.html`;
+        if (url !== parentGame && gamePaths.has(parentGame)) {
+          url = parentGame;
+        }
+      }
+
+      try {
+        const response = await fetch(url, { method: "HEAD" });
+        if (response.status === 404) {
+          gameError.textContent = `${title} could not be found.`;
+          gameError.hidden = false;
+          return;
+        }
+
+        if (response.ok && response.headers.get("content-length") === "0") {
+          const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
+          const fallback = gameFallbacks.get(normalizeGameName(filename));
+          if (fallback && fallback !== url) {
+            url = fallback;
+          } else {
+            gameError.textContent = `${title} has no game file available in this library.`;
+            gameError.hidden = false;
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn(`Could not check ${url} before loading:`, error);
+      }
+
+      gameFrame.src = url;
+      gameFrame.hidden = false;
     }
 
     function reloadGame() {
@@ -217,6 +262,7 @@
     function closeGame() {
       gameContainer.style.display = "none";
       gameFrame.src = "";
+      gameError.hidden = true;
     }
 
     async function loadGames() {
@@ -224,6 +270,15 @@
         const response = await fetch("games-manifest.json");
         if (!response.ok) throw new Error("Unable to load game manifest.");
         const filenames = await response.json();
+        gamePaths = new Set(filenames);
+        gameFallbacks = new Map();
+        filenames.forEach((filename) => {
+          const match = filename.match(/^gamelist\/([^/]+)\/index\.html$/i);
+          if (match) {
+            const key = normalizeGameName(match[1]);
+            if (!gameFallbacks.has(key)) gameFallbacks.set(key, filename);
+          }
+        });
         
         list.innerHTML = "";
         const fragment = document.createDocumentFragment();
