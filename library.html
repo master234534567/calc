@@ -177,6 +177,9 @@
     const currentGameTitle = document.getElementById("current-game-title");
     let gameFallbacks = new Map();
     let gamePaths = new Set();
+    const gameFallbackAliases = new Map([
+      ["bigtowertinysquare", "bigtowertinysquare2"]
+    ]);
 
     function normalizeGameName(name) {
       return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -236,9 +239,11 @@
 
         if (response.ok && response.headers.get("content-length") === "0") {
           const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
-          const fallback = gameFallbacks.get(normalizeGameName(filename));
+          const key = normalizeGameName(filename);
+          const fallback = gameFallbacks.get(key) || gameFallbacks.get(gameFallbackAliases.get(key));
           if (fallback && fallback !== url) {
             url = fallback;
+            currentGameTitle.textContent = getTitle(fallback);
           } else {
             gameError.textContent = `${title} has no game file available in this library.`;
             gameError.hidden = false;
