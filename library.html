@@ -47,27 +47,6 @@
     #game-error[hidden] { display: none; }
   </style>
 
-<style id="fullscreen-style">
-  .fullscreen-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 9999;
-    padding: 8px 14px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.2s;
-  }
-  .fullscreen-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
-  }
-</style>
-
-
 <script id="fullscreen-script">
   function toggleFullScreen(elementId) {
     const el = elementId ? document.getElementById(elementId) : document.documentElement;
@@ -166,6 +145,7 @@
       <span class="top-bar-title" id="current-game-title">Game</span>
       <div class="btn-group">
         <button class="top-btn reload-btn" onclick="reloadGame()">Reload</button>
+        <button class="top-btn" onclick="toggleFullScreen('game-container')">Fullscreen ⛶</button>
         <button class="top-btn" onclick="closeGame()">Back to Library</button>
       </div>
     </div>
@@ -183,6 +163,7 @@
     const currentGameTitle = document.getElementById("current-game-title");
     let gameFallbacks = new Map();
     let gamePaths = new Set();
+    let gameImageManifest = {};
     const gameImageOverrides = new Map([
       ["gamelist/AmongUs-Online-2", "gamelist/AmongUs-Online-2/Sus.jpg"],
       ["gamelist/AmongUs-Online", "gamelist/AmongUs-Online/Sus.jpg"],
@@ -362,9 +343,13 @@
 
     async function loadGames() {
       try {
-        const response = await fetch("games-manifest.json", { cache: "no-store" });
+        const [response, imageResponse] = await Promise.all([
+          fetch("games-manifest.json", { cache: "no-store" }),
+          fetch("game-art-manifest.json", { cache: "no-store" })
+        ]);
         if (!response.ok) throw new Error("Unable to load game manifest.");
         const filenames = await response.json();
+        gameImageManifest = imageResponse.ok ? await imageResponse.json() : {};
         gamePaths = new Set(filenames);
         gameFallbacks = new Map();
         filenames.forEach((filename) => {
@@ -403,7 +388,9 @@
           if (imageCandidates.length > 0) {
             const image = document.createElement("img");
             image.alt = "";
-            image.loading = "lazy";
+            const mappedOfflineImage = filename.startsWith("Offline-HTML-Games-Pack-master/offline/")
+              && Boolean(gameImageManifest[filename]);
+            image.loading = mappedOfflineImage ? "eager" : "lazy";
             image.decoding = "async";
             image.onload = () => {
               fallback.hidden = true;
@@ -439,6 +426,11 @@
     }
 
     function getImageCandidates(filename) {
+      if (filename.startsWith("Offline-HTML-Games-Pack-master/offline/")) {
+        const image = gameImageManifest[filename];
+        return image ? [image] : [];
+      }
+
       const pathParts = filename.split("/");
       const gameDirectory = pathParts[0] === "gamelist" && pathParts.length > 2
         ? `gamelist/${pathParts[1]}`
@@ -474,6 +466,5 @@
     loadGames();
   </script>
 
-<button class="fullscreen-btn" onclick="toggleFullScreen()">Fullscreen ⛶</button>
 </body>
 </html>
