@@ -10,9 +10,15 @@
     h1 { text-align: center; color: #4CAF50; margin-top: 0; }
     .search-container { max-width: 600px; margin: 0 auto 20px; text-align: center; }
     input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #333; background: #1e1e1e; color: #fff; }
-    ul { list-style: none; padding: 0; max-width: 800px; margin: 0 auto; }
-    .item { display: flex; justify-content: space-between; align-items: center; background: #1e1e1e; padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #2a2a2a; }
-    .item-title { font-weight: bold; font-size: 16px; }
+    ul { list-style: none; padding: 0; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+    .item { min-width: 0; transition: transform 180ms ease; }
+    .item:hover, .item:focus-within { transform: scale(1.05); position: relative; z-index: 1; }
+    .game-card { display: flex; flex-direction: column; width: 100%; padding: 0; overflow: hidden; text-align: left; background: #1e1e1e; border: 1px solid #333; border-radius: 10px; color: #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
+    .game-card:hover { background: #252525; }
+    .game-art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: linear-gradient(135deg, #173b4a, #25345a 55%, #3c2450); }
+    .game-art img { width: 100%; height: 100%; object-fit: cover; }
+    .game-art-fallback { padding: 12px; color: #fff; font-size: 22px; font-weight: 800; text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); }
+    .item-title { display: -webkit-box; min-height: 48px; padding: 12px; overflow: hidden; font-weight: bold; font-size: 15px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     button { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     button:hover { background: #45a049; }
     #status { text-align: center; color: #888; margin-top: 20px; }
@@ -177,8 +183,88 @@
     const currentGameTitle = document.getElementById("current-game-title");
     let gameFallbacks = new Map();
     let gamePaths = new Set();
+    const gameImageOverrides = new Map([
+      ["gamelist/AmongUs-Online-2", "gamelist/AmongUs-Online-2/Sus.jpg"],
+      ["gamelist/AmongUs-Online", "gamelist/AmongUs-Online/Sus.jpg"],
+      ["gamelist/Bloons-TD-5", "gamelist/Bloons-TD-5/btd5.png"],
+      ["gamelist/Bubble-Tanks-TD-1", "gamelist/Bubble-Tanks-TD-1/bubbletanks1.png"],
+      ["gamelist/Bubble-Tanks-TD-2", "gamelist/Bubble-Tanks-TD-2/bubble-tanks-2.jpg"],
+      ["gamelist/Buckshot-Roulete", "gamelist/Buckshot-Roulete/buckshotroulette.png"],
+      ["gamelist/Click-The-Wawas", "gamelist/Click-The-Wawas/wawa.png"],
+      ["gamelist/Cursed-Treasure", "gamelist/Cursed-Treasure/cursedtreasure1.png"],
+      ["gamelist/Dont-Whack-Your-Boss", "gamelist/Dont-Whack-Your-Boss/dontwackyourboss.png"],
+      ["gamelist/Drive-Mad-Winter", "gamelist/Drive-Mad-Winter/logo.png"],
+      ["gamelist/Drive-Mad", "gamelist/Drive-Mad/logo.png"],
+      ["gamelist/Duck-Life-2", "gamelist/Duck-Life-2/ducklife-2.jpg"],
+      ["gamelist/Duck-Life-3", "gamelist/Duck-Life-3/ducklife-3.png"],
+      ["gamelist/Factory-Balls-4", "gamelist/Factory-Balls-4/factory-balls4.png"],
+      ["gamelist/Fancy-pants-adventure-2", "gamelist/Fancy-pants-adventure-2/fancy-pants-adventures-2.png"],
+      ["gamelist/Fancy-pants-adventure-3", "gamelist/Fancy-pants-adventure-3/fancy-pants-adventures-3.jpg"],
+      ["gamelist/Fireboy-and-Watergirl", "gamelist/Fireboy-and-Watergirl/fireboy-and-watergirl-1.jpg"],
+      ["gamelist/Flash-Flight-Simulator-1", "gamelist/Flash-Flight-Simulator-1/flash-flight-simulator.jpg"],
+      ["gamelist/KirbyNightmare", "gamelist/KirbyNightmare/kirby.png"],
+      ["gamelist/Learn-To-Fly-3", "gamelist/Learn-To-Fly-3/Learntofly3.jpg"],
+      ["gamelist/MetroidFusion", "gamelist/MetroidFusion/metiodfusion.png"],
+      ["gamelist/Minecraft-Case-Simulator", "gamelist/Minecraft-Case-Simulator/minecraftcasesim.png"],
+      ["gamelist/Minecraft-Online", "gamelist/Minecraft-Online/minecraft.jpg"],
+      ["gamelist/Mutilate-A-Doll-Two", "gamelist/Mutilate-A-Doll-Two/mulilate-a-doll-2.jpg"],
+      ["gamelist/Papa-Bakes", "gamelist/Papa-Bakes/papasbakeria.jpg"],
+      ["gamelist/Papa-Burg", "gamelist/Papa-Burg/papas-burgeria.jpg"],
+      ["gamelist/Papa-Cpck", "gamelist/Papa-Cpck/papascupcakeria.jpg"],
+      ["gamelist/Papa-Htdog", "gamelist/Papa-Htdog/papashotdoggeria.jpg"],
+      ["gamelist/Papa-Scoop-Alt", "gamelist/Papa-Scoop-Alt/papasscooperia.png"],
+      ["gamelist/Papa-Scoop", "gamelist/Papa-Scoop/papasscooperia.png"],
+      ["gamelist/Papas-Cheese", "gamelist/Papas-Cheese/papascheeseria.jpg"],
+      ["gamelist/Papas-Donut", "gamelist/Papas-Donut/papasdonuteria.jpg"],
+      ["gamelist/Papas-Louie-1", "gamelist/Papas-Louie-1/papalouie1.png"],
+      ["gamelist/Papas-Louie-2", "gamelist/Papas-Louie-2/papalouie2.png"],
+      ["gamelist/Papas-Louie-3", "gamelist/Papas-Louie-3/papalouie3.png"],
+      ["gamelist/Papas-Pasta", "gamelist/Papas-Pasta/papaspasteria.png"],
+      ["gamelist/Papas-PnCk", "gamelist/Papas-PnCk/papaspancakeria.png"],
+      ["gamelist/Papas-Sushi", "gamelist/Papas-Sushi/papassushiria.jpg"],
+      ["gamelist/Papas-Wing", "gamelist/Papas-Wing/papaswingeria.png"],
+      ["gamelist/Plants-Vs-Zombies-2", "gamelist/Plants-Vs-Zombies-2/pvz2.png"],
+      ["gamelist/Polytrack-Modded", "gamelist/Polytrack-Modded/official_tracks.jpg"],
+      ["gamelist/Polytrack-New", "gamelist/Polytrack-New/polytrack.jpg"],
+      ["gamelist/Raft-Wars-HTML5", "gamelist/Raft-Wars-HTML5/raftwarshtml.png"],
+      ["gamelist/Sandboxels", "gamelist/Sandboxels/icon.jpg"],
+      ["gamelist/Serenitrove", "gamelist/Serenitrove/turtle.png"],
+      ["gamelist/Sniper-assassin-5", "gamelist/Sniper-assassin-5/sniper-asssassin-5.jpg"],
+      ["gamelist/Soccer-Masters-Euro-2020", "gamelist/Soccer-Masters-Euro-2020/soccermasters.png"],
+      ["gamelist/Stick-War-1", "gamelist/Stick-War-1/stick-war.jpg"],
+      ["gamelist/SuikaGame", "gamelist/SuikaGame/suika.png"],
+      ["gamelist/The-Binding-Of-Isaac", "gamelist/The-Binding-Of-Isaac/thebindingofissac.png"],
+      ["gamelist/The-Impossible-Quiz-Deluxe", "gamelist/The-Impossible-Quiz-Deluxe/theimpossiblequiz.png"],
+      ["gamelist/Troll-Face-Quest-2", "gamelist/Troll-Face-Quest-2/trollface-quest-2.jpg"],
+      ["gamelist/Troll-Face-Quest-3", "gamelist/Troll-Face-Quest-3/trollface-quest-3.jpg"],
+      ["gamelist/Troll-Face-Quest-4", "gamelist/Troll-Face-Quest-4/trollface-quest-4.jpg"],
+      ["gamelist/Troll-Face-Quest-5", "gamelist/Troll-Face-Quest-5/trollface-quest-5.jpg"],
+      ["gamelist/Troll-Face-Quest", "gamelist/Troll-Face-Quest/trollface-quest.jpg"],
+      ["gamelist/Unicycle-Heroes", "gamelist/Unicycle-Heroes/unicyclehero.jpg"],
+      ["gamelist/YOMI-HUSTLE", "gamelist/YOMI-HUSTLE/yomi.png"],
+      ["gamelist/bob-the-robber-2", "gamelist/bob-the-robber-2/splash.jpeg"]
+    ]);
     const gameFallbackAliases = new Map([
-      ["bigtowertinysquare", "bigtowertinysquare2"]
+      ["18wasm", "Offline-HTML-Games-Pack-master/offline/1.8.html"],
+      ["8ballclassic", "gamelist/8-Ball-Billiards-Classic/index.html"],
+      ["badparenting", "gamelist/Bad-Parenting-1/index.html"],
+      ["badtimesimulator", "gamelist/Bad-Time-Simulator-Sans-Fight/index.html"],
+      ["baldisbasics", "gamelist/Baldis-Basics-Classic-Remastered/index.html"],
+      ["basketballlegends", "gamelist/Basketball-Legends-2020/index.html"],
+      ["bigicetowertinysquare", "gamelist/Big-Tower-Tiny-Square-2/index.html"],
+      ["bigneontowertinysquare", "gamelist/Big-Tower-Tiny-Square-2/index.html"],
+      ["bigtowertinysquare", "gamelist/Big-Tower-Tiny-Square-2/index.html"],
+      ["bloonstd", "gamelist/Bloons-Tower-Defence/index.html"],
+      ["bloonstd2", "gamelist/Bloons-Tower-Defence-2/index.html"],
+      ["bloonstd3", "gamelist/Bloons-Tower-Defence-3/index.html"],
+      ["bloonstd4", "gamelist/BTD-4/index.html"],
+      ["burritobisonlaunchalibre", "gamelist/Burrito-Bison-3/index.html"],
+      ["chess", "gamelist/Chess-Classic/index.html"],
+      ["circloo2", "gamelist/circloO/index.html"],
+      ["cuttheropeholidaygift", "gamelist/Cut-The-Rope-Holiday/index.html"],
+      ["drifthunterspro", "gamelist/Drift-Hunters/index.html"],
+      ["fancypantsadventure", "gamelist/Fancy-Pants-Adventures/index.html"],
+      ["fnaf", "gamelist/FNAF-1/index.html"]
     ]);
 
     function normalizeGameName(name) {
@@ -244,12 +330,12 @@
         ) {
           const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
           const key = normalizeGameName(filename);
-          const fallback = gameFallbacks.get(key) || gameFallbacks.get(gameFallbackAliases.get(key));
+          const fallback = gameFallbacks.get(key) || gameFallbackAliases.get(key);
           if (fallback && fallback !== url) {
             url = fallback;
             currentGameTitle.textContent = getTitle(fallback);
           } else {
-            gameError.textContent = `${title} has no game file available in this library.`;
+            gameError.textContent = `${title} is an empty offline-pack placeholder, and no matching playable page was found in the game library.`;
             gameError.hidden = false;
             return;
           }
@@ -276,7 +362,7 @@
 
     async function loadGames() {
       try {
-        const response = await fetch("games-manifest.json");
+        const response = await fetch("games-manifest.json", { cache: "no-store" });
         if (!response.ok) throw new Error("Unable to load game manifest.");
         const filenames = await response.json();
         gamePaths = new Set(filenames);
@@ -298,18 +384,48 @@
           item.className = "item";
           item.dataset.name = `${title} ${filename}`.toLowerCase();
 
-          const details = document.createElement("div");
+          const button = document.createElement("button");
+          button.className = "game-card";
+          button.type = "button";
+          button.setAttribute("aria-label", `Play ${title}`);
+          button.onclick = () => openGame(filename, title);
+
+          const art = document.createElement("span");
+          art.className = "game-art";
+          art.setAttribute("aria-hidden", "true");
+
+          const fallback = document.createElement("span");
+          fallback.className = "game-art-fallback";
+          fallback.textContent = title;
+          art.append(fallback);
+
+          const imageCandidates = getImageCandidates(filename);
+          if (imageCandidates.length > 0) {
+            const image = document.createElement("img");
+            image.alt = "";
+            image.loading = "lazy";
+            image.decoding = "async";
+            image.onload = () => {
+              fallback.hidden = true;
+            };
+            let candidateIndex = 0;
+            image.onerror = () => {
+              candidateIndex += 1;
+              if (candidateIndex < imageCandidates.length) {
+                image.src = imageCandidates[candidateIndex];
+              } else {
+                image.remove();
+              }
+            };
+            image.src = imageCandidates[candidateIndex];
+            art.prepend(image);
+          }
+
           const titleElement = document.createElement("span");
           titleElement.className = "item-title";
           titleElement.textContent = title;
-          details.append(titleElement);
-
-          const button = document.createElement("button");
-          button.type = "button";
-          button.textContent = "Play";
-          button.onclick = () => openGame(filename, title);
-
-          item.append(details, button);
+          button.append(art, titleElement);
+          item.append(button);
           fragment.append(item);
         });
 
@@ -322,12 +438,36 @@
       }
     }
 
+    function getImageCandidates(filename) {
+      const pathParts = filename.split("/");
+      const gameDirectory = pathParts[0] === "gamelist" && pathParts.length > 2
+        ? `gamelist/${pathParts[1]}`
+        : pathParts.slice(0, -1).join("/");
+      const gameName = pathParts[0] === "gamelist" && pathParts.length > 2
+        ? pathParts[1]
+        : (pathParts[pathParts.length - 1] || "").replace(/\.(html?|htm)$/i, "");
+      if (!gameDirectory || !gameName) return [];
+
+      const names = [...new Set([
+        gameName,
+        gameName.toLowerCase(),
+        gameName.replace(/[^a-z0-9]/gi, ""),
+        gameName.replace(/[^a-z0-9]/gi, "").toLowerCase()
+      ])];
+      const extensions = ["png", "jpg", "jpeg", "webp", "gif"];
+      const candidates = names.flatMap((name) =>
+        extensions.map((extension) => `${gameDirectory}/${name}.${extension}`)
+      );
+      const override = gameImageOverrides.get(gameDirectory);
+      return override ? [override, ...candidates] : candidates;
+    }
+
     function filterItems() {
       const query = search.value.toLowerCase();
       const items = list.getElementsByClassName("item");
       for (let item of items) {
         const name = item.dataset.name;
-        item.style.display = name.includes(query) ? "flex" : "none";
+        item.style.display = name.includes(query) ? "" : "none";
       }
     }
 
