@@ -426,6 +426,11 @@
     }
 
     function getImageCandidates(filename) {
+      if (Object.prototype.hasOwnProperty.call(gameImageManifest, filename)) {
+        const image = gameImageManifest[filename];
+        return image ? [image] : [];
+      }
+
       if (filename.startsWith("Offline-HTML-Games-Pack-master/offline/")) {
         const image = gameImageManifest[filename];
         return image ? [image] : [];
