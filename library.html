@@ -9,6 +9,11 @@
     body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
     h1 { text-align: center; color: #4CAF50; margin-top: 0; }
     .search-container { max-width: 600px; margin: 0 auto 20px; text-align: center; }
+    .popular-controls { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 0 auto 20px; }
+    .popular-label { color: #d9d9d9; font-weight: bold; letter-spacing: 0.04em; }
+    .filter-btn { background: #4CAF50; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .filter-btn.secondary { background: #2a2a2a; border: 1px solid #444; }
+    .filter-btn.active { background: #2f6e30; box-shadow: 0 0 0 2px rgba(76,175,80,0.35); }
     input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #333; background: #1e1e1e; color: #fff; }
     ul { list-style: none; padding: 0; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
     .item { min-width: 0; transition: transform 180ms ease; }
@@ -136,6 +141,11 @@
     <div class="search-container">
       <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
     </div>
+    <div class="popular-controls" aria-label="Popular filters">
+      <span class="popular-label">Popular</span>
+      <button type="button" id="popular-button" class="filter-btn">Popular</button>
+      <button type="button" id="all-games-button" class="filter-btn secondary">All Games</button>
+    </div>
     <div id="status">Loading games...</div>
     <ul id="list"></ul>
   </div>
@@ -157,6 +167,8 @@
     const list = document.getElementById("list");
     const status = document.getElementById("status");
     const search = document.getElementById("search");
+    const popularButton = document.getElementById("popular-button");
+    const allGamesButton = document.getElementById("all-games-button");
     const gameContainer = document.getElementById("game-container");
     const gameFrame = document.getElementById("game-frame");
     const gameError = document.getElementById("game-error");
@@ -164,6 +176,27 @@
     let gameFallbacks = new Map();
     let gamePaths = new Set();
     let gameImageManifest = {};
+    const gameTitleOverrides = new Map([
+      ["https://rgc.zone/ports/ac-webport-main/index.html", "Animal Crossing"]
+    ]);
+    let isPopularFilterActive = false;
+    const popularGameKeys = new Set([
+      "celeste",
+      "112wasm",
+      "hollowknight",
+      "silksong",
+      "bendyandtheinkmachine",
+      "badtimesimulatorsansfight",
+      "bendy",
+      "buckshotroulete",
+      "fnaf",
+      "fnaf2",
+      "fnaf3",
+      "fnaf4",
+      "fnaf5",
+      "lastbreath",
+      "untitledgoosegame"
+    ]);
     const gameImageOverrides = new Map([
       ["gamelist/AmongUs-Online-2", "gamelist/AmongUs-Online-2/Sus.jpg"],
       ["gamelist/AmongUs-Online", "gamelist/AmongUs-Online/Sus.jpg"],
@@ -249,11 +282,25 @@
     ]);
 
     function normalizeGameName(name) {
-      return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function normalizePopularKey(value) {
+      const normalized = normalizeGameName(value)
+        .replace(/^celete$/i, "celeste")
+        .replace(/^badtimesimulator$/i, "badtimesimulatorsansfight")
+        .replace(/^fnaf1$/i, "fnaf");
+      return normalized;
+    }
+
+    function isPopularGame(title, filename = "") {
+      const values = [title, filename];
+      return values.some((value) => popularGameKeys.has(normalizePopularKey(value)));
     }
 
     function getTitle(filename) {
       if (!filename) return "";
+      if (gameTitleOverrides.has(filename)) return gameTitleOverrides.get(filename);
       let base = filename.toString();
       base = base.replace(/\.(html|htm)$/i, "");
       if (/\/index$/i.test(base) || /^index$/i.test(base)) {
@@ -296,33 +343,35 @@
         }
       }
 
-      try {
-        const response = await fetch(url, { method: "HEAD" });
-        if (response.status === 404) {
-          gameError.textContent = `${title} could not be found.`;
-          gameError.hidden = false;
-          return;
-        }
-
-        if (
-          url.startsWith("Offline-HTML-Games-Pack-master/offline/") &&
-          response.ok &&
-          response.headers.get("content-length") === "0"
-        ) {
-          const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
-          const key = normalizeGameName(filename);
-          const fallback = gameFallbacks.get(key) || gameFallbackAliases.get(key);
-          if (fallback && fallback !== url) {
-            url = fallback;
-            currentGameTitle.textContent = getTitle(fallback);
-          } else {
-            gameError.textContent = `${title} is an empty offline-pack placeholder, and no matching playable page was found in the game library.`;
+      if (!/^https?:\/\//i.test(url)) {
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          if (response.status === 404) {
+            gameError.textContent = `${title} could not be found.`;
             gameError.hidden = false;
             return;
           }
+
+          if (
+            url.startsWith("Offline-HTML-Games-Pack-master/offline/") &&
+            response.ok &&
+            response.headers.get("content-length") === "0"
+          ) {
+            const filename = url.split("/").pop().replace(/\.(html?|htm)$/i, "");
+            const key = normalizeGameName(filename);
+            const fallback = gameFallbacks.get(key) || gameFallbackAliases.get(key);
+            if (fallback && fallback !== url) {
+              url = fallback;
+              currentGameTitle.textContent = getTitle(fallback);
+            } else {
+              gameError.textContent = `${title} is an empty offline-pack placeholder, and no matching playable page was found in the game library.`;
+              gameError.hidden = false;
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn(`Could not check ${url} before loading:`, error);
         }
-      } catch (error) {
-        console.warn(`Could not check ${url} before loading:`, error);
       }
 
       gameFrame.src = url;
@@ -368,6 +417,9 @@
           const item = document.createElement("li");
           item.className = "item";
           item.dataset.name = `${title} ${filename}`.toLowerCase();
+          item.dataset.popular = String(isPopularGame(title, filename));
+          item.dataset.title = title;
+          item.dataset.filename = filename;
 
           const button = document.createElement("button");
           button.className = "game-card";
@@ -436,6 +488,8 @@
         return image ? [image] : [];
       }
 
+      if (/^https?:\/\//i.test(filename)) return [];
+
       const pathParts = filename.split("/");
       const gameDirectory = pathParts[0] === "gamelist" && pathParts.length > 2
         ? `gamelist/${pathParts[1]}`
@@ -459,14 +513,35 @@
       return override ? [override, ...candidates] : candidates;
     }
 
+    function applyPopularFilter() {
+      isPopularFilterActive = true;
+      search.value = "";
+      popularButton.classList.add("active");
+      allGamesButton.classList.remove("active");
+      filterItems();
+    }
+
+    function clearPopularFilter() {
+      isPopularFilterActive = false;
+      popularButton.classList.remove("active");
+      allGamesButton.classList.add("active");
+      filterItems();
+    }
+
     function filterItems() {
       const query = search.value.toLowerCase();
       const items = list.getElementsByClassName("item");
       for (let item of items) {
         const name = item.dataset.name;
-        item.style.display = name.includes(query) ? "" : "none";
+        const matchesQuery = !query || name.includes(query);
+        const matchesPopular = !isPopularFilterActive || item.dataset.popular === "true";
+        item.style.display = matchesQuery && matchesPopular ? "" : "none";
       }
     }
+
+    popularButton.addEventListener("click", applyPopularFilter);
+    allGamesButton.addEventListener("click", clearPopularFilter);
+    allGamesButton.classList.add("active");
 
     loadGames();
   </script>
