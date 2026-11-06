@@ -10,7 +10,6 @@
     h1 { text-align: center; color: #4CAF50; margin-top: 0; }
     .search-container { max-width: 600px; margin: 0 auto 20px; text-align: center; }
     .popular-controls { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 0 auto 20px; }
-    .popular-label { color: #d9d9d9; font-weight: bold; letter-spacing: 0.04em; }
     .filter-btn { background: #4CAF50; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     .filter-btn.secondary { background: #2a2a2a; border: 1px solid #444; }
     .filter-btn.active { background: #2f6e30; box-shadow: 0 0 0 2px rgba(76,175,80,0.35); }
@@ -23,6 +22,9 @@
     .game-art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: linear-gradient(135deg, #173b4a, #25345a 55%, #3c2450); }
     .game-art img { width: 100%; height: 100%; object-fit: cover; }
     .game-art-fallback { padding: 12px; color: #fff; font-size: 22px; font-weight: 800; text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); }
+    .game-badge { position: absolute; top: 8px; left: 8px; z-index: 2; padding: 5px 7px; border-radius: 3px; font-size: 11px; line-height: 1; font-weight: 800; }
+    .game-badge.hot { background: #f97316; color: #fff; }
+    .game-badge.new { background: #facc15; color: #292524; }
     .item-title { display: -webkit-box; min-height: 48px; padding: 12px; overflow: hidden; font-weight: bold; font-size: 15px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     button { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     button:hover { background: #45a049; }
@@ -141,10 +143,13 @@
     <div class="search-container">
       <input type="text" id="search" placeholder="Search games..." oninput="filterItems()">
     </div>
-    <div class="popular-controls" aria-label="Popular filters">
-      <span class="popular-label">Popular</span>
-      <button type="button" id="popular-button" class="filter-btn">Popular</button>
-      <button type="button" id="all-games-button" class="filter-btn secondary">All Games</button>
+    <div class="popular-controls" role="group" aria-label="Game categories">
+      <button type="button" id="all-games-button" class="filter-btn secondary active" aria-pressed="true">All Games</button>
+      <button type="button" id="popular-button" class="filter-btn" aria-pressed="false">Popular</button>
+      <button type="button" id="new-games-button" class="filter-btn" aria-pressed="false">New Games</button>
+      <button type="button" id="racing-button" class="filter-btn" aria-pressed="false">Racing</button>
+      <button type="button" id="shooting-button" class="filter-btn" aria-pressed="false">Shooting</button>
+      <button type="button" id="fnaf-button" class="filter-btn" aria-pressed="false">FNAF</button>
     </div>
     <div id="status">Loading games...</div>
     <ul id="list"></ul>
@@ -160,7 +165,7 @@
       </div>
     </div>
     <div id="game-error" role="status" hidden></div>
-    <iframe id="game-frame" src=""></iframe>
+    <iframe id="game-frame" src="" allow="autoplay; fullscreen; gamepad; pointer-lock" allowfullscreen></iframe>
   </div>
 
   <script>
@@ -169,6 +174,10 @@
     const search = document.getElementById("search");
     const popularButton = document.getElementById("popular-button");
     const allGamesButton = document.getElementById("all-games-button");
+    const newGamesButton = document.getElementById("new-games-button");
+    const racingButton = document.getElementById("racing-button");
+    const shootingButton = document.getElementById("shooting-button");
+    const fnafButton = document.getElementById("fnaf-button");
     const gameContainer = document.getElementById("game-container");
     const gameFrame = document.getElementById("game-frame");
     const gameError = document.getElementById("game-error");
@@ -179,7 +188,7 @@
     const gameTitleOverrides = new Map([
       ["https://rgc.zone/ports/ac-webport-main/index.html", "Animal Crossing"]
     ]);
-    let isPopularFilterActive = false;
+    let activeGameFilter = "all";
     const popularGameKeys = new Set([
       "celeste",
       "112wasm",
@@ -197,6 +206,148 @@
       "lastbreath",
       "untitledgoosegame"
     ]);
+    const newGameKeys = new Set(["60seconds", "animalcrossing"]);
+    const gameCategoryGroups = {
+      racing: [
+        ["3D Car Simulator"],
+        ["Blumgi Racers"],
+        ["Blumgi Rocket"],
+        ["Bouncy Motors"],
+        ["Crazy Cars"],
+        ["Crazy Motorcycle"],
+        ["Death Chase"],
+        ["Demolition Derby Crash Racing"],
+        ["Drift Boss"],
+        ["Drift Hunters", "Drift Hunters Pro"],
+        ["Drive Mad", "Drive Mad Winter"],
+        ["Driven Wild"],
+        ["Eggy Car"],
+        ["Escape Road", "Escape Road 2", "Escape Road 3", "Escape Road City"],
+        ["Force Race"],
+        ["Highway Racer 2"],
+        ["HexGL"],
+        ["Jelly Drift"],
+        ["Madalin Stunt Cars 2", "Madalin Stunt Cars 3"],
+        ["MarioKart"],
+        ["Moto X3M", "Moto3XM", "Moto X3M 1", "Moto3XM 1"],
+        ["Moto3XM 2", "Moto X3M 2"],
+        ["Moto3XM 3", "Moto X3M 3"],
+        ["MotoX3M 6 Spooky Land", "Moto X3M 6 Spooky Land"],
+        ["Mountain Bike Racer"],
+        ["MX OffRoad Mountain Bike"],
+        ["Om Nom Run"],
+        ["Parking Fury 3D"],
+        ["Parking Rush"],
+        ["Polytrack Modded"],
+        ["Polytrack Old"],
+        ["Race Master"],
+        ["Slow Roads"],
+        ["Super Star Car"],
+        ["Telekinesis Car 3D"],
+        ["Trigger Rally"],
+        ["Turbo Stars"],
+        ["Vex X3M"],
+        ["Vex X3M 2"],
+        ["Wheely", "Wheely 1"],
+        ["Wheely 2"],
+        ["Wheely 3"],
+        ["Wheely 4"],
+        ["Wheely 5"],
+        ["Wheely 6"],
+        ["Wheely 7"],
+        ["Wheely 8"],
+        ["Zombie Derby"]
+      ],
+      shooting: [
+        ["10 Minutes Till Dawn"],
+        ["1v1 Lol", "1v1 LOL"],
+        ["Awesome Tanks"],
+        ["Awesome Tanks 2"],
+        ["Alien Hominid"],
+        ["Awesome Planes"],
+        ["Ball Blast HTML5"],
+        ["Bank Robbery 2"],
+        ["Bank Robbery 3"],
+        ["Blockpost"],
+        ["Boom Slingers"],
+        ["Bow Masters", "Bowmasters"],
+        ["Brotato"],
+        ["Bubble Tanks Arena"],
+        ["Cat Gunner"],
+        ["Chaos Faction 2"],
+        ["Chromium BSU"],
+        ["CSGO"],
+        ["Doom"],
+        ["Doom 3"],
+        ["Getaway Shootout"],
+        ["Gun Mayham 2"],
+        ["Gun Mayham Redux"],
+        ["Gunblood"],
+        ["Half Life", "Half-Life"],
+        ["Half Life Opposing Force", "Half-Life Opposing Force"],
+        ["Hotline Miami"],
+        ["Krunker"],
+        ["Luminous Strike"],
+        ["Madness Project Nexus"],
+        ["Picos School"],
+        ["Picos School 2"],
+        ["Pico Vs Uberkids"],
+        ["Pixel Gun Survival"],
+        ["Quake 3"],
+        ["Ragdoll Archers"],
+        ["Raze"],
+        ["Raze 2"],
+        ["Recoil"],
+        ["Rooftop Snipers"],
+        ["Rooftop Snipers 2"],
+        ["Shell Shockers"],
+        ["Sift Heads 1"],
+        ["Sift Heads 2"],
+        ["Sift Heads 3"],
+        ["Sift Heads 4"],
+        ["Sift Heads 5"],
+        ["Sniper Assassin", "Sniper Assassin 1"],
+        ["Sniper Assassin 2"],
+        ["Sniper Assassin 3"],
+        ["Sniper Assassin 4"],
+        ["Sniper Assassin 5"],
+        ["Starfighter"],
+        ["Stick War 1"],
+        ["Stick War 2"],
+        ["Strikeforce Heroes"],
+        ["Superhot"],
+        ["Time Shooter", "Time Shooter 1"],
+        ["Time Shooter 2"],
+        ["Time Shooter 3"],
+        ["Time Shooter 3 SWAT"],
+        ["Ultrakill"],
+        ["Violetland"],
+        ["Zombotron"],
+        ["Zombotron 2"]
+      ],
+      fnaf: [
+        ["Five Nights At Freddys", "Five Nights At Freddys 1", "FNAF", "FNAF 1"],
+        ["Five Nights At Freddys 2", "FNAF 2"],
+        ["Five Nights At Freddys 3", "FNAF 3"],
+        ["Five Nights At Freddys 4", "Five Nights At Freddys 4 Halloween", "FNAF 4"],
+        ["FNAF 5"],
+        ["FNAF Sister Location", "Five Nights At Freddys Sister Location"],
+        ["FNAF PIZZASIM", "FNAF Pizzeria Simulator", "Five Nights At Freddys Pizzeria Simulator"],
+        ["FNAF UCN", "Five Nights At Freddys UCN"],
+        ["FNAF World", "Five Nights At Freddys World"],
+        ["Five Nights At Candys 1"],
+        ["Five Nights At Candys 2"],
+        ["Five Nights At Shreks Hotel"],
+        ["FNAE"]
+      ]
+    };
+    const gameCategoryRanks = Object.fromEntries(
+      Object.entries(gameCategoryGroups).map(([category, groups]) => {
+        const ranks = new Map();
+        groups.forEach((aliases, rank) => aliases.forEach((alias) => ranks.set(normalizeGameName(alias), rank)));
+        return [category, ranks];
+      })
+    );
     const gameImageOverrides = new Map([
       ["gamelist/AmongUs-Online-2", "gamelist/AmongUs-Online-2/Sus.jpg"],
       ["gamelist/AmongUs-Online", "gamelist/AmongUs-Online/Sus.jpg"],
@@ -296,6 +447,21 @@
     function isPopularGame(title, filename = "") {
       const values = [title, filename];
       return values.some((value) => popularGameKeys.has(normalizePopularKey(value)));
+    }
+
+    function isNewGame(title, filename = "") {
+      return [title, filename].some((value) => newGameKeys.has(normalizeGameName(value)));
+    }
+
+    function getGameCategoryRank(title, filename, category) {
+      const ranks = gameCategoryRanks[category];
+      if (!ranks) return -1;
+      const basename = filename.split("/").pop().replace(/\.(html?|htm)$/i, "").replace(/\/index$/i, "");
+      for (const value of [title, basename]) {
+        const rank = ranks.get(normalizeGameName(value));
+        if (rank !== undefined) return rank;
+      }
+      return -1;
     }
 
     function getTitle(filename) {
@@ -418,6 +584,12 @@
           item.className = "item";
           item.dataset.name = `${title} ${filename}`.toLowerCase();
           item.dataset.popular = String(isPopularGame(title, filename));
+          item.dataset.new = String(isNewGame(title, filename));
+          for (const category of Object.keys(gameCategoryGroups)) {
+            const rank = getGameCategoryRank(title, filename, category);
+            item.dataset[category] = String(rank >= 0);
+            item.dataset[`${category}Rank`] = String(rank);
+          }
           item.dataset.title = title;
           item.dataset.filename = filename;
 
@@ -435,6 +607,15 @@
           fallback.className = "game-art-fallback";
           fallback.textContent = title;
           art.append(fallback);
+
+          const badgeText = isNewGame(title, filename) ? "NEW" : isPopularGame(title, filename) ? "HOT" : "";
+          if (badgeText) {
+            const badge = document.createElement("span");
+            badge.className = `game-badge ${badgeText.toLowerCase()}`;
+            badge.textContent = badgeText;
+            badge.setAttribute("aria-hidden", "true");
+            art.append(badge);
+          }
 
           const imageCandidates = getImageCandidates(filename);
           if (imageCandidates.length > 0) {
@@ -513,35 +694,58 @@
       return override ? [override, ...candidates] : candidates;
     }
 
-    function applyPopularFilter() {
-      isPopularFilterActive = true;
+    function setGameFilter(filter) {
+      activeGameFilter = filter;
       search.value = "";
-      popularButton.classList.add("active");
-      allGamesButton.classList.remove("active");
-      filterItems();
-    }
-
-    function clearPopularFilter() {
-      isPopularFilterActive = false;
-      popularButton.classList.remove("active");
-      allGamesButton.classList.add("active");
+      const buttons = {
+        all: allGamesButton,
+        popular: popularButton,
+        new: newGamesButton,
+        racing: racingButton,
+        shooting: shootingButton,
+        fnaf: fnafButton
+      };
+      for (const [name, button] of Object.entries(buttons)) {
+        const isActive = name === filter;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      }
       filterItems();
     }
 
     function filterItems() {
       const query = search.value.toLowerCase();
-      const items = list.getElementsByClassName("item");
-      for (let item of items) {
+      const items = Array.from(list.getElementsByClassName("item"));
+      for (const item of items) {
         const name = item.dataset.name;
         const matchesQuery = !query || name.includes(query);
-        const matchesPopular = !isPopularFilterActive || item.dataset.popular === "true";
-        item.style.display = matchesQuery && matchesPopular ? "" : "none";
+        const matchesCategory = activeGameFilter === "all" || item.dataset[activeGameFilter] === "true";
+        item.style.display = matchesQuery && matchesCategory ? "" : "none";
+      }
+
+      if (gameCategoryRanks[activeGameFilter]) {
+        const rankKey = `${activeGameFilter}Rank`;
+        items.sort((left, right) => {
+          const leftRank = Number(left.dataset[rankKey]);
+          const rightRank = Number(right.dataset[rankKey]);
+          const leftMatches = left.dataset[activeGameFilter] === "true";
+          const rightMatches = right.dataset[activeGameFilter] === "true";
+          if (leftMatches !== rightMatches) return leftMatches ? -1 : 1;
+          if (leftMatches && leftRank !== rightRank) return leftRank - rightRank;
+          return left.dataset.title.localeCompare(right.dataset.title);
+        });
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => fragment.append(item));
+        list.append(fragment);
       }
     }
 
-    popularButton.addEventListener("click", applyPopularFilter);
-    allGamesButton.addEventListener("click", clearPopularFilter);
-    allGamesButton.classList.add("active");
+    allGamesButton.addEventListener("click", () => setGameFilter("all"));
+    popularButton.addEventListener("click", () => setGameFilter("popular"));
+    newGamesButton.addEventListener("click", () => setGameFilter("new"));
+    racingButton.addEventListener("click", () => setGameFilter("racing"));
+    shootingButton.addEventListener("click", () => setGameFilter("shooting"));
+    fnafButton.addEventListener("click", () => setGameFilter("fnaf"));
 
     loadGames();
   </script>
