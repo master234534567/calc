@@ -574,14 +574,15 @@
             if (!gameFallbacks.has(key)) gameFallbacks.set(key, filename);
           }
         });
-        
+
         list.innerHTML = "";
         const fragment = document.createDocumentFragment();
 
-        filenames.forEach((filename) => {
+        filenames.forEach((filename, originalIndex) => {
           const title = getTitle(filename);
           const item = document.createElement("li");
           item.className = "item";
+          item.dataset.originalIndex = String(originalIndex);
           item.dataset.name = `${title} ${filename}`.toLowerCase();
           item.dataset.popular = String(isPopularGame(title, filename));
           item.dataset.new = String(isNewGame(title, filename));
@@ -716,28 +717,44 @@
     function filterItems() {
       const query = search.value.toLowerCase();
       const items = Array.from(list.getElementsByClassName("item"));
+      const categoryRanks = gameCategoryRanks[activeGameFilter];
+      const categoryTitleWinners = new Map();
+
+      if (categoryRanks) {
+        for (const item of items) {
+          if (item.dataset[activeGameFilter] !== "true") continue;
+          const titleKey = normalizeGameName(item.dataset.title);
+          const currentWinner = categoryTitleWinners.get(titleKey);
+          const isLibraryPage = /^gamelist\/[^/]+\/index\.html$/i.test(item.dataset.filename);
+          const winnerIsLibraryPage = currentWinner && /^gamelist\/[^/]+\/index\.html$/i.test(currentWinner.dataset.filename);
+          if (!currentWinner || (isLibraryPage && !winnerIsLibraryPage)) {
+            categoryTitleWinners.set(titleKey, item);
+          }
+        }
+      }
+
       for (const item of items) {
         const name = item.dataset.name;
         const matchesQuery = !query || name.includes(query);
-        const matchesCategory = activeGameFilter === "all" || item.dataset[activeGameFilter] === "true";
+        const matchesCategory = activeGameFilter === "all" || (
+          item.dataset[activeGameFilter] === "true" &&
+          (!categoryRanks || categoryTitleWinners.get(normalizeGameName(item.dataset.title)) === item)
+        );
         item.style.display = matchesQuery && matchesCategory ? "" : "none";
       }
 
-      if (gameCategoryRanks[activeGameFilter]) {
+      items.sort((left, right) => {
+        if (!categoryRanks) return Number(left.dataset.originalIndex) - Number(right.dataset.originalIndex);
         const rankKey = `${activeGameFilter}Rank`;
-        items.sort((left, right) => {
-          const leftRank = Number(left.dataset[rankKey]);
-          const rightRank = Number(right.dataset[rankKey]);
-          const leftMatches = left.dataset[activeGameFilter] === "true";
-          const rightMatches = right.dataset[activeGameFilter] === "true";
-          if (leftMatches !== rightMatches) return leftMatches ? -1 : 1;
-          if (leftMatches && leftRank !== rightRank) return leftRank - rightRank;
-          return left.dataset.title.localeCompare(right.dataset.title);
-        });
-        const fragment = document.createDocumentFragment();
-        items.forEach((item) => fragment.append(item));
-        list.append(fragment);
-      }
+        const leftMatches = categoryTitleWinners.get(normalizeGameName(left.dataset.title)) === left;
+        const rightMatches = categoryTitleWinners.get(normalizeGameName(right.dataset.title)) === right;
+        if (leftMatches !== rightMatches) return leftMatches ? -1 : 1;
+        const rankDiff = Number(left.dataset[rankKey]) - Number(right.dataset[rankKey]);
+        return rankDiff || Number(left.dataset.originalIndex) - Number(right.dataset.originalIndex);
+      });
+      const fragment = document.createDocumentFragment();
+      items.forEach((item) => fragment.append(item));
+      list.append(fragment);
     }
 
     allGamesButton.addEventListener("click", () => setGameFilter("all"));
